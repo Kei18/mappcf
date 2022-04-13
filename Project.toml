@@ -1,0 +1,20 @@
+name = "MAPPFD"
+uuid = "637336f9-a353-47d6-b9eb-a07751d9740b"
+authors = ["Kei18 <keisuke.oku18@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+julia = ">= 1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
