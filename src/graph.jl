@@ -15,7 +15,7 @@ end
 
 function generate_sample_graph1()::Graph
     # setup undirected graph
-    G = map(i -> Vertex(id=i), 1:5)
+    G = map(i -> Vertex(id = i), 1:5)
 
     G[1].pos = [0, 0]
     G[2].pos = [1, 0]

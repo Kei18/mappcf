@@ -5,7 +5,6 @@ import Printf: @printf, @sprintf
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 using Plots
-
 include("graph.jl")
 
 # type definitions
@@ -33,17 +32,12 @@ function emulate_crashes!(
         if rand() < failure_prob
             loc_id = config[i]
             VERBOSE > 0 && @info(@sprintf("agent-%d is crashed at loc-%d", i, loc_id))
-            push!(failures, Crash(who=i, when=timestep, loc=loc_id))
+            push!(failures, Crash(who = i, when = timestep, loc = loc_id))
         end
     end
 end
 
-function is_neighbor(
-    G::Graph,
-    config::Config,
-    agent::Int,
-    target_loc::Int
-)::Bool
+function is_neighbor(G::Graph, config::Config, agent::Int, target_loc::Int)::Bool
     return target_loc in get_neighbors(G, config[agent])
 end
 
@@ -58,8 +52,8 @@ end
 function non_anonymous_failure_detector(
     crashes::Crashes,
     target_loc::Int,
-    target_agent::Int
-    )::Bool
+    target_agent::Int,
+)::Bool
     return any(crash -> crash.who == target_agent && crash.loc == target_loc, crashes)
 end
 

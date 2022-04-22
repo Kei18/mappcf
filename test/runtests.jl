@@ -4,7 +4,7 @@ using MAPPFD
 @testset "oracles" begin
     G = MAPPFD.generate_sample_graph1()
     config = Config([1, 4])
-    crashes = Crashes([Crash(who=1, loc=1)])
+    crashes = Crashes([Crash(who = 1, loc = 1)])
 
     target_agent = 1
     target_loc = 1

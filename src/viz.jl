@@ -3,27 +3,32 @@ function plot_init()
         size = (400, 400),
         xticks = nothing,
         yticks = nothing,
-        xaxis=false,
-        yaxis=false
+        xaxis = false,
+        yaxis = false,
     )
 end
 
 function plot_graph!(G::Graph)
     positions = hcat(map(v -> v.pos, G)...)
-    X = positions[1,:]
-    Y = positions[2,:]
+    X = positions[1, :]
+    Y = positions[2, :]
 
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
             u = get(G, j)
-            plot!([v.pos[1], u.pos[1]], [v.pos[2], u.pos[2]], color=:black, label=nothing)
+            plot!(
+                [v.pos[1], u.pos[1]],
+                [v.pos[2], u.pos[2]],
+                color = :black,
+                label = nothing,
+            )
         end
     end
 
     # plot vertices
     ann = map(v -> (v.pos..., (string(v.id), 10)), G)  # annotation
-    scatter!(X, Y, label=nothing, markersize=12, color=:white, annotations=ann)
+    scatter!(X, Y, label = nothing, markersize = 12, color = :white, annotations = ann)
 
     return plot!()
 end
@@ -35,12 +40,15 @@ end
 
 function plot_config(G::Graph, config::Config, crashes::Crashes)
     plot_graph(G)
-    for (agent, loc) = enumerate(config)
+    for (agent, loc) in enumerate(config)
         v = get(G, loc)
         color = is_crashed(crashes, agent) ? :gray : :blue
         scatter!(
-            [v.pos[1]], [v.pos[2]], marker=(12, 0.5, color), label=nothing,
-            annotation=((v.pos + [0, 0.12])..., string(agent), color)
+            [v.pos[1]],
+            [v.pos[2]],
+            marker = (12, 0.5, color),
+            label = nothing,
+            annotation = ((v.pos + [0, 0.12])..., string(agent), color),
         )
     end
 
