@@ -14,7 +14,7 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 #### Test
 ```sh
-julia --project -e 'using Pkg; Pkg.test()'
+julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
 #### Formatting
