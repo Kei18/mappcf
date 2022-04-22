@@ -4,6 +4,7 @@
     neigh::Vector{Int} = [] # indexes
 end
 Graph = Vector{Vertex}
+Config = Vector{Int}  # vertex indexes
 
 function get(G::Graph, loc::Int)
     return G[loc]

@@ -55,32 +55,40 @@ function plot_config(G::Graph, config::Config, crashes::Crashes)
     return plot!()
 end
 
-# function plot_anim(
-#     G::Graph,
-#     hist::History;
-#     interpolate_nums::Int = 0,
-#     filename::String = "tmp.gif",
-#     fps::Int64 = 3,
-# )
-#     N = length(hist[1][1])
-#     anim = @animate for (k, (config, failures)) in enumerate(hist)
-#         plot_config(V, config, failures)
+function plot_anim(
+    G::Graph,
+    hist::History;
+    interpolate_nums::Int = 2,
+    filename::String = "tmp.gif",
+    fps::Int64 = 3,
+)
+    N = length(hist[1].config)
+    anim = @animate for (k, (config, failures)) in enumerate(hist)
+        plot_config(G, config, failures)
 
-#         # plot intermediate status
-#         if k > 1 && interpolate_nums > 0
-#             for i in 1:N
-#                 vertex_now = V[config[i]]
-#                 vertex_pre = V[hist[k-1][1][i]]
-#                 vertex_now.id == vertex_pre.id && continue
-#                 vec = (vertex_now.pos - vertex_pre.pos) / (interpolate_nums + 1)
-#                 interpolate_positions = hcat(map(j -> vec * j + vertex_pre.pos, 1:interpolate_nums)...)
-#                 X = interpolate_positions[1,:]
-#                 Y = interpolate_positions[2,:]
-#                 scatter!(X, Y, marker=(12, 0.2, :blue), label=nothing)
-#             end
-#         end
-#     end
-#     gif(anim, filename; fps=fps)
-# end
+        # plot intermediate status
+        if k > 1 && interpolate_nums > 0
+            for i = 1:N
+                vertex_now = get(G, config[i])
+                vertex_pre = get(G, hist[k-1].config[i])
+                vertex_now.id == vertex_pre.id && continue
+                vec = (vertex_now.pos - vertex_pre.pos) / (interpolate_nums + 1)
+                interpolate_positions =
+                    hcat(map(j -> vec * j + vertex_pre.pos, 1:interpolate_nums)...)
+                X = interpolate_positions[1, :]
+                Y = interpolate_positions[2, :]
+                scatter!(X, Y, marker = (12, 0.2, :blue), label = nothing)
+            end
+        end
+    end
+    gif(anim, filename; fps = fps)
+end
 
-export plot_graph, plot_config
+function safe_savefig!(filename::Union{Nothing,String} = nothing)
+    isnothing(filename) && return
+    dirname = join(split(filename, "/")[1:end-1], "/")
+    !isdir(dirname) && mkpath(dirname)
+    savefig(filename)
+end
+
+export plot_graph, plot_config, safe_savefig!
