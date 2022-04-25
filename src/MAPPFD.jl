@@ -8,6 +8,7 @@ using Plots
 
 include("graph.jl")
 include("libmapf.jl")
+include("libsolver.jl")
 include("exec.jl")
 include("viz.jl")
 

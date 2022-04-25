@@ -42,4 +42,4 @@ ipython_config.py
 #   git rm -r .ipynb_checkpoints/
 
 # End of https://www.toptal.com/developers/gitignore/api/julia,jupyternotebooks
-*/.DS_Store
+/**/.DS_Store

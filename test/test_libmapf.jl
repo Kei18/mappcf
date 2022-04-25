@@ -1,6 +1,12 @@
-using MAPPFD: get_distance_table, find_timed_path, align_paths!, prioritized_planning
+using MAPPFD:
+    get_distance_table,
+    find_timed_path,
+    align_paths!,
+    single_agent_pathfinding,
+    prioritized_planning
 
 @testset verbose = true "lib mapf" begin
+
     G = generate_sample_graph1()
 
     @testset "distance table" begin
@@ -22,6 +28,11 @@ using MAPPFD: get_distance_table, find_timed_path, align_paths!, prioritized_pla
         paths = [[1, 2, 3, 3], [4, 5, 5]]
         align_paths!(paths)
         @test paths == [[1, 2, 3], [4, 5, 5]]
+    end
+
+    @testset "single_agent_pathfinding" begin
+        path = single_agent_pathfinding(G, [[1, 1, 2, 3]], 4, 5)
+        @test path == [4, 2, 5]
     end
 
     @testset "prioritized planning" begin

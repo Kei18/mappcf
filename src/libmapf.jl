@@ -71,7 +71,7 @@ function find_timed_path(
         if check_goal(S)
             # backtracking
             path = []
-            while S.parent_id != nothing
+            while !isnothing(S.parent_id)
                 pushfirst!(path, S.v)
                 S = CLOSE[S.parent_id]
             end
@@ -115,6 +115,49 @@ function align_paths!(paths::Vector{Vector{Int}})::Nothing
     end
 end
 
+function single_agent_pathfinding(
+    G::Graph,
+    paths::Vector{Vector{Int}},
+    start::Int,
+    goal::Int;
+    max_makespan::Union{Int,Nothing} = 10,
+    h_func = (v::Int) -> 0,
+)
+    N = length(paths)
+
+    # check collisions
+    invalid =
+        (S_from::SearchNode, S_to::SearchNode) -> begin
+            v_i_from = S_from.v
+            v_i_to = S_to.v
+            t = S_to.t
+            !isnothing(max_makespan) && t > max_makespan && return true
+            for j = 1:N
+                l = length(paths[j])
+                v_j_from = paths[j][min(t - 1, l)]
+                v_j_to = paths[j][min(t, l)]
+                # vertex or edge collision
+                (v_i_to == v_j_to || (v_j_from == v_i_from && v_j_to == v_i_from)) &&
+                    return true
+            end
+            return false
+        end
+
+    # check goal
+    check_goal =
+        (S::SearchNode) -> begin
+            S.v != goal && return false
+            # check additional constraints
+            for j = 1:N
+                any(t -> paths[j][t] == S.v, S.t+1:length(paths[j])) && return false
+            end
+            return true
+        end
+
+    # single-agent path finding
+    return find_timed_path(G, start, check_goal; invalid = invalid, h_func = h_func)
+end
+
 function prioritized_planning(
     G::Graph,
     starts::Config,
@@ -124,46 +167,24 @@ function prioritized_planning(
     dist_tables = map(g -> get_distance_table(G, g), goals),
 )
     N = length(starts)
-    paths = map(i -> Vector{Int}(), 1:N)
+    paths = Vector{Vector{Int}}()
 
     for i = 1:N
-
-        # check collisions
-        invalid =
-            (S_from::SearchNode, S_to::SearchNode) -> begin
-                v_i_from = S_from.v
-                v_i_to = S_to.v
-                t = S_to.t
-                !isnothing(max_makespan) && t > max_makespan && return true
-                for j = 1:i-1
-                    l = length(paths[j])
-                    v_j_from = paths[j][min(t - 1, l)]
-                    v_j_to = paths[j][min(t, l)]
-                    (v_i_to == v_j_to || (v_j_from == v_i_from && v_j_to == v_i_from)) && return true
-                end
-                return false
-            end
-
-        # check goal
-        check_goal =
-            (S::SearchNode) -> begin
-                S.v != goals[i] && return false
-                # check additional constraints
-                any(j -> any(t -> paths[j][t] == S.v, S.t+1:length(paths[j])), 1:i-1) &&
-                    return false
-                return true
-            end
-
-        # h-value
-        h_func = (v_id) -> dist_tables[i][v_id]
-
         # single-agent path finding
-        path = find_timed_path(G, starts[i], check_goal; invalid = invalid, h_func = h_func)
+        path = single_agent_pathfinding(
+            G,
+            paths,
+            starts[i],
+            goals[i];
+            max_makespan = max_makespan,
+            h_func = (v_id) -> dist_tables[i][v_id],
+        )
 
         # failure case
         isnothing(path) && return nothing
 
-        paths[i] = path
+        # paths[i] = path
+        push!(paths, path)
     end
 
     # align length
