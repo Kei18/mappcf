@@ -13,6 +13,11 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 ## Utilities
 
+#### Start JupyterNotebook
+```sh
+julia --project=. -e "using IJulia; jupyterlab()"
+```
+
 #### Test
 ```sh
 julia --project=. -e 'using Pkg; Pkg.test()'

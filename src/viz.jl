@@ -38,11 +38,11 @@ function plot_graph(G::Graph)
     return plot_graph!(G)
 end
 
-function plot_config(G::Graph, config::Config, crashes::Crashes)
+function plot_config(G::Graph, config::Config, crashes::Crashes, t::Int)
     plot_graph(G)
     for (agent, loc) in enumerate(config)
         v = get(G, loc)
-        color = is_crashed(crashes, agent) ? :gray : :blue
+        color = is_crashed(crashes, agent, t) ? :gray : :blue
         scatter!(
             [v.pos[1]],
             [v.pos[2]],
@@ -63,8 +63,8 @@ function plot_anim(
     fps::Int64 = 3,
 )
     N = length(hist[1].config)
-    anim = @animate for (k, (config, failures)) in enumerate(hist)
-        plot_config(G, config, failures)
+    anim = @animate for (k, (config, crashes)) in enumerate(hist)
+        plot_config(G, config, crashes, k)
 
         # plot intermediate status
         if k > 1 && interpolate_nums > 0

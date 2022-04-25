@@ -44,7 +44,7 @@ function find_timed_path(
     invalid::Function = (args...) -> false,
     h_func::Function = (args...) -> 0,
     g_func::Function = (S::SearchNode, u::Int) -> S.g + 1,
-)::Union{Nothing,Vector{Int}}  # failure or path
+)::Union{Nothing,Path}  # failure or path
 
     CLOSE = Dict{String,SearchNode}()
     OPEN = PriorityQueue{SearchNode,Real}()
@@ -98,7 +98,7 @@ function find_timed_path(
     return nothing
 end
 
-function align_paths!(paths::Vector{Vector{Int}})::Nothing
+function align_paths!(paths::Paths)::Nothing
     max_len = maximum(map(length, paths))
     N = length(paths)
 
@@ -117,12 +117,13 @@ end
 
 function single_agent_pathfinding(
     G::Graph,
-    paths::Vector{Vector{Int}},
+    paths::Paths,
+    agent::Int,
     start::Int,
     goal::Int;
     max_makespan::Union{Int,Nothing} = 10,
     h_func = (v::Int) -> 0,
-)
+)::Path
     N = length(paths)
 
     # check collisions
@@ -133,6 +134,7 @@ function single_agent_pathfinding(
             t = S_to.t
             !isnothing(max_makespan) && t > max_makespan && return true
             for j = 1:N
+                (j == agent || isempty(paths[j])) && continue
                 l = length(paths[j])
                 v_j_from = paths[j][min(t - 1, l)]
                 v_j_to = paths[j][min(t, l)]
@@ -149,6 +151,7 @@ function single_agent_pathfinding(
             S.v != goal && return false
             # check additional constraints
             for j = 1:N
+                j == agent && continue
                 any(t -> paths[j][t] == S.v, S.t+1:length(paths[j])) && return false
             end
             return true
@@ -161,19 +164,20 @@ end
 function prioritized_planning(
     G::Graph,
     starts::Config,
-    goals::Config,
+    goals::Config;
     max_makespan::Union{Nothing,Int} = 20,
-    align_length::Bool = true;
-    dist_tables = map(g -> get_distance_table(G, g), goals),
-)
+    align_length::Bool = true,
+    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+)::Union{Nothing,Paths}
     N = length(starts)
-    paths = Vector{Vector{Int}}()
+    paths = map(i -> Path(), 1:N)
 
     for i = 1:N
         # single-agent path finding
         path = single_agent_pathfinding(
             G,
             paths,
+            i,
             starts[i],
             goals[i];
             max_makespan = max_makespan,
@@ -183,8 +187,7 @@ function prioritized_planning(
         # failure case
         isnothing(path) && return nothing
 
-        # paths[i] = path
-        push!(paths, path)
+        paths[i] = path
     end
 
     # align length

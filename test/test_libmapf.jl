@@ -31,14 +31,13 @@ using MAPPFD:
     end
 
     @testset "single_agent_pathfinding" begin
-        path = single_agent_pathfinding(G, [[1, 1, 2, 3]], 4, 5)
-        @test path == [4, 2, 5]
+        paths = [[1, 1, 2, 3], Vector{Int}()]
+        @test single_agent_pathfinding(G, paths, 2, 4, 5) == [4, 2, 5]
     end
 
     @testset "prioritized planning" begin
         starts = [1, 4]
         goals = [3, 5]
-        paths = prioritized_planning(G, starts, goals)
-        @test paths == [[1, 2, 3], [4, 1, 5]]
+        @test prioritized_planning(G, starts, goals) == [[1, 2, 3], [4, 1, 5]]
     end
 end

@@ -5,6 +5,8 @@
 end
 Graph = Vector{Vertex}
 Config = Vector{Int}  # vertex indexes
+Path = Vector{Int}
+Paths = Vector{Path}
 
 function get(G::Graph, loc::Int)
     return G[loc]
