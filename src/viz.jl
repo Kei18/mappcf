@@ -9,10 +9,6 @@ function plot_init()
 end
 
 function plot_graph!(G::Graph)
-    positions = hcat(map(v -> v.pos, G)...)
-    X = positions[1, :]
-    Y = positions[2, :]
-
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
@@ -26,8 +22,12 @@ function plot_graph!(G::Graph)
         end
     end
 
-    # plot vertices
-    ann = map(v -> (v.pos..., (string(v.id), 10)), G)  # annotation
+    # plot vertices, remove redundant vertices
+    _G = filter(v -> !isempty(v.neigh), G)
+    positions = hcat(map(v -> v.pos, _G)...)
+    X = positions[1, :]
+    Y = positions[2, :]
+    ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
     scatter!(X, Y, label = nothing, markersize = 12, color = :white, annotations = ann)
 
     return plot!()
