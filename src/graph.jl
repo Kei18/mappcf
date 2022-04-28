@@ -17,8 +17,8 @@ function get_neighbors(G::Graph, loc::Int)::Vector{Int}
 end
 
 function generate_grid(
-    width::Int,
-    height::Int;
+    width::Int = 5,
+    height::Int = 3;
     obstacle_locs::Vector{Int} = Vector{Int}(),
 )::Graph
     G = Graph()
@@ -40,6 +40,29 @@ function generate_grid(
         MAPPFD.get(G, v_id).neigh = []
     end
 
+    return G
+end
+
+function generate_random_grid(
+    width::Int = 8,
+    height::Int = 8;
+    occupancy_rate::Float64 = 0.2,
+)::Graph
+    l = width * height
+    return generate_grid(
+        width,
+        height;
+        obstacle_locs = randperm(l)[1:round(Int, l * occupancy_rate)],
+    )
+end
+
+function generate_random_graph(num_vertices::Int = 30, prob::Float64 = 0.2)::Graph
+    G = map(k -> Vertex(id = k), 1:num_vertices)
+    for i = 1:num_vertices, j = 1:i
+        rand() > prob && continue
+        push!(get(G, i).neigh, j)
+        push!(get(G, j).neigh, i)
+    end
     return G
 end
 

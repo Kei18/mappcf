@@ -27,7 +27,13 @@ function identify_critical_sections(
     return critical_sections
 end
 
-function simple_solver2(G::Graph, starts::Config, goals::Config)::Solution
+function simple_solver2(
+    G::Graph,
+    starts::Config,
+    goals::Config;
+    max_makespan::Union{Nothing,Int} = 20,
+)::Solution
+
     # number of agents
     N = length(starts)
 
@@ -42,54 +48,71 @@ function simple_solver2(G::Graph, starts::Config, goals::Config)::Solution
     solution = map(
         i -> [(
             path = primary_paths[i],
-            backup = Dict{SolutionEntry,Int}(),
+            backup = Dict{CriticalSection,Int}(),
             time_offset = 1,
         )],
         1:N,
     )
 
-    # # store all search nodes, working as queue
-    # OPEN = [(fill(1, N))]  # plan-index for each agent
+    # store all search nodes, working as queue
+    OPEN = [(fill(1, N))]  # plan-index for each agent
 
-    # # BFS
-    # while !isempty(OPEN)
-    #     # pop one search node
-    #     S = popfirst!(OPEN)
+    # BFS
+    while !isempty(OPEN)
+        # pop one search node
+        S = popfirst!(OPEN)
 
-    #     # retrieve info
-    #     paths = map(k -> plans[k][S[k]].path, 1:N)
-    #     time_offset = maximum(map(k -> plans[k][S[k]].time_offset, 1:N))
+        # retrieve info
+        paths = map(k -> solution[k][S[k]].path, 1:N)
+        time_offset = maximum(map(k -> solution[k][S[k]].time_offset, 1:N))
 
-    #     # identify critical sections
-    #     critical_sections_all_agents = identify_critical_sections(paths, time_offset)
+        # identify critical sections
+        critical_sections_all_agents = identify_critical_sections(paths, time_offset)
 
-    #     # branching
-    #     for i = 1:N, critical_section in critical_sections_all_agents[i]
-    #         cs_who = critical_section.who
-    #         cs_when = critical_section.when
-    #         cs_loc = critical_section.loc
+        # branching
+        for i = 1:N, critical_section in critical_sections_all_agents[i]
+            j = critical_section.who
+            t = critical_section.when
+            loc = critical_section.loc
 
-    #         # reformulate paths
-    #         paths_from_middle = map(path -> path[cs_when-1:end], paths)
-    #         # crashed agent
-    #         paths_from_middle[cs_who] =
-    #             fill(paths_from_middle[cs_who][1], length(paths_from_middle[cs_who]))
+            # reformulate paths
+            paths_from_middle = map(path -> path[t-1:end], paths)
+            # crashed agent
+            paths_from_middle[j] =
+                fill(paths_from_middle[j][1], length(paths_from_middle[j]))
 
-    #         # find backup path
-    #         backup_path_i = single_agent_pathfinding(G, paths_from_middle, paths_from)
+            # find backup path
+            backup_path_i = single_agent_pathfinding(
+                G,
+                paths_from_middle,
+                i,
+                paths_from_middle[i][1],
+                goals[i];
+                max_makespan = isnothing(max_makespan) ? max_makespan :
+                               max_makespan - t + 2,
+                h_func = (v) -> dist_tables[i][v],
+            )
+            isnothing(backup_path_i) && return nothing
 
-    #         (paths_from_middle, i, paths_from_middle[i][1], config_goal[i])
-    #         isnothing(backup_path_i) && return nothing
+            # register backup path
+            new_path_i = vcat(paths[i][1:t-2], backup_path_i)
+            # update solution
+            push!(
+                solution[i],
+                (
+                    path = new_path_i,
+                    backup = Dict{SolutionEntry,Int}(),
+                    time_offset = t - 1,
+                ),
+            )
+            # register children id
+            solution[i][S[i]].backup[(when = t - 1, who = j, loc = loc)] =
+                length(solution[i])
 
-    #         # register backup path
-    #         new_path_i = vcat(paths[i][1:t-2], backup_path_i)
-    #         push!(plans[i], (new_path_i, Dict(), t - 1))         # update solution
-    #         plans[i][S[i]][2][(t - 1, j, v)] = length(plans[i])  # register children id
-
-    #         # add new search node
-    #         push!(OPEN, map(k -> (k == i) ? length(plans[i]) : S[k], 1:N))
-    #     end
-    # end
+            # add new search node
+            push!(OPEN, map(k -> (k == i) ? length(solution[i]) : S[k], 1:N))
+        end
+    end
 
     return solution
 end

@@ -1,3 +1,14 @@
+COLORS = collect(ColorSchemes.seaborn_bright)
+
+function get_colors(N::Int)
+    N <= length(COLORS) && return COLORS[1:N]
+    return vcat(map(_ -> COLORS, 1:ceil(Int, N / length(COLORS)))...)[1:N]
+end
+
+function get_color(i::Int64)
+    return COLORS[mod1(i, length(COLORS))]
+end
+
 function plot_init()
     return plot(
         size = (400, 400),
@@ -8,7 +19,7 @@ function plot_init()
     )
 end
 
-function plot_graph!(G::Graph)
+function plot_graph!(G::Graph; show_annotation::Bool = false)
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
@@ -28,30 +39,78 @@ function plot_graph!(G::Graph)
     X = positions[1, :]
     Y = positions[2, :]
     ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
-    scatter!(X, Y, label = nothing, markersize = 12, color = :white, annotations = ann)
+    scatter!(
+        X,
+        Y,
+        label = nothing,
+        markersize = 12,
+        color = :white,
+        annotations = show_annotation ? ann : [],
+    )
 
     return plot!()
 end
 
-function plot_graph(G::Graph)
+function plot_graph(G::Graph; show_annotation::Bool = false)
     plot_init()
-    return plot_graph!(G)
+    return plot_graph!(G; show_annotation = show_annotation)
 end
 
-function plot_config(G::Graph, config::Config, crashes::Crashes, t::Int)
-    plot_graph(G)
-    for (agent, loc) in enumerate(config)
-        v = get(G, loc)
-        color = is_crashed(crashes, agent, t) ? :gray : :blue
-        scatter!(
-            [v.pos[1]],
-            [v.pos[2]],
-            marker = (12, 0.5, color),
-            label = nothing,
-            annotation = ((v.pos + [0, 0.12])..., string(agent), color),
-        )
-    end
+function plot_locs!(G::Graph, config::Config)
+    positions = hcat(map(k -> get(G, k).pos, config)...)
+    X = positions[1, :]
+    Y = positions[2, :]
+    scatter!(X, Y, color = get_colors(length(config)), marker = (12, 1.0), label = nothing)
+end
 
+function plot_goals!(G::Graph, goals::Config)
+    isempty(goals) && return
+    positions = hcat(map(k -> get(G, k).pos, goals)...)
+    X = positions[1, :]
+    Y = positions[2, :]
+    return scatter!(
+        X,
+        Y,
+        label = nothing,
+        markersize = 5,
+        markershape = :rect,
+        color = get_colors(length(goals)),
+    )
+end
+
+function plot_crashes!(G::Graph, config::Config, crashes::Crashes = Crashes([]), t::Int = 1)
+    positions = hcat(
+        map(
+            k -> get(G, config[k]).pos,
+            filter(k -> is_crashed(crashes, k, t), 1:length(config)),
+        )...,
+    )
+    return scatter!(
+        positions[1, :],
+        positions[2, :],
+        label = nothing,
+        markersize = 8,
+        markershape = :diamond,
+        markercolor = :lightgray,
+    )
+end
+
+function plot_instance(G::Graph, starts::Config, goals::Config)
+    plot_graph(G)
+    plot_locs!(G, starts)
+    plot_goals!(G, goals)
+    return plot!()
+end
+
+function plot_config(
+    G::Graph,
+    config::Config,
+    crashes::Crashes = Crashes([]),
+    t::Int = 1;
+    goals::Config = Config([]),
+)
+    plot_instance(G, config, goals)
+    plot_crashes!(G, config, crashes, t)
     return plot!()
 end
 
@@ -77,7 +136,7 @@ function plot_anim(
                     hcat(map(j -> vec * j + vertex_pre.pos, 1:interpolate_nums)...)
                 X = interpolate_positions[1, :]
                 Y = interpolate_positions[2, :]
-                scatter!(X, Y, marker = (12, 0.2, :blue), label = nothing)
+                scatter!(X, Y, marker = (12, 0.2, get_color(i)), label = nothing)
             end
         end
     end
