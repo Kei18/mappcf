@@ -27,12 +27,13 @@ function identify_critical_sections(
     return critical_sections
 end
 
+# TODO: manage crashed agents
 function simple_solver2(
     G::Graph,
     starts::Config,
     goals::Config;
     max_makespan::Union{Nothing,Int} = 20,
-)::Solution
+)::Union{Nothing,Solution}
 
     # number of agents
     N = length(starts)
@@ -87,7 +88,7 @@ function simple_solver2(
                 paths_from_middle,
                 i,
                 paths_from_middle[i][1],
-                goals[i];
+                goals;
                 max_makespan = isnothing(max_makespan) ? max_makespan :
                                max_makespan - t + 2,
                 h_func = (v) -> dist_tables[i][v],

@@ -1,5 +1,7 @@
 function generate_random_instance_grid(;
-    N::Int = rand(5:10),
+    N_min::Int = 5,
+    N_max::Int = 10,
+    N::Int = rand(N_min:N_max),
     width::Int = 8,
     height::Int = 8,
     occupancy_rate::Float64 = 0.1,

@@ -120,15 +120,18 @@ function single_agent_pathfinding(
     paths::Paths,
     agent::Int,
     start::Int,
-    goal::Int;
+    goals::Config;
     max_makespan::Union{Int,Nothing} = 10,
     h_func = (v::Int) -> 0,
-)::Path
+    correct_agents::Vector{Int} = collect(1:length(paths)),
+)::Union{Nothing,Path}
     N = length(paths)
+    goal = goals[agent]
 
     # check collisions
     invalid =
         (S_from::SearchNode, S_to::SearchNode) -> begin
+            # prohibit to use other goal
             v_i_from = S_from.v
             v_i_to = S_to.v
             t = S_to.t
@@ -142,6 +145,10 @@ function single_agent_pathfinding(
                 (v_i_to == v_j_to || (v_j_from == v_i_from && v_j_to == v_i_from)) &&
                     return true
             end
+
+            # avoid goals of others
+            any(j -> j != agent && goals[j] == S_to.v, correct_agents) && return true
+
             return false
         end
 
@@ -179,7 +186,7 @@ function prioritized_planning(
             paths,
             i,
             starts[i],
-            goals[i];
+            goals;
             max_makespan = max_makespan,
             h_func = (v_id) -> dist_tables[i][v_id],
         )

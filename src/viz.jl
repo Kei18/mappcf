@@ -19,7 +19,7 @@ function plot_init()
     )
 end
 
-function plot_graph!(G::Graph; show_annotation::Bool = false)
+function plot_graph!(G::Graph; show_vertex_id::Bool = false)
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
@@ -38,29 +38,24 @@ function plot_graph!(G::Graph; show_annotation::Bool = false)
     positions = hcat(map(v -> v.pos, _G)...)
     X = positions[1, :]
     Y = positions[2, :]
-    ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
-    scatter!(
-        X,
-        Y,
-        label = nothing,
-        markersize = 12,
-        color = :white,
-        annotations = show_annotation ? ann : [],
-    )
+    # ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
+    scatter!(X, Y, label = nothing, markersize = 12, color = :white)
+    show_vertex_id && annotate!(X, Y, map(v -> (v.id, 6, :black, :bottom), _G))
 
     return plot!()
 end
 
-function plot_graph(G::Graph; show_annotation::Bool = false)
+function plot_graph(G::Graph; show_vertex_id::Bool = false)
     plot_init()
-    return plot_graph!(G; show_annotation = show_annotation)
+    return plot_graph!(G; show_vertex_id = show_vertex_id)
 end
 
-function plot_locs!(G::Graph, config::Config)
+function plot_locs!(G::Graph, config::Config; show_agent_id::Bool = false)
     positions = hcat(map(k -> get(G, k).pos, config)...)
     X = positions[1, :]
     Y = positions[2, :]
     scatter!(X, Y, color = get_colors(length(config)), marker = (12, 1.0), label = nothing)
+    show_agent_id && annotate!(X, Y, map(k -> (k, 6, :black, :top), 1:length(config)))
 end
 
 function plot_goals!(G::Graph, goals::Config)
@@ -95,9 +90,15 @@ function plot_crashes!(G::Graph, config::Config, crashes::Crashes = Crashes([]),
     )
 end
 
-function plot_instance(G::Graph, starts::Config, goals::Config)
-    plot_graph(G)
-    plot_locs!(G, starts)
+function plot_instance(
+    G::Graph,
+    starts::Config,
+    goals::Config;
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
+)
+    plot_graph(G; show_vertex_id = show_vertex_id)
+    plot_locs!(G, starts; show_agent_id = show_agent_id)
     plot_goals!(G, goals)
     return plot!()
 end

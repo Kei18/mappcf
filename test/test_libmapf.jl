@@ -5,7 +5,7 @@ using MAPPFD:
     single_agent_pathfinding,
     prioritized_planning
 
-@testset verbose = true "lib mapf" begin
+@testset verbose = true "libmapf" begin
 
     G = generate_sample_graph1()
 
@@ -32,7 +32,8 @@ using MAPPFD:
 
     @testset "single_agent_pathfinding" begin
         paths = [[1, 1, 2, 3], Vector{Int}()]
-        @test single_agent_pathfinding(G, paths, 2, 4, 5) == [4, 2, 5]
+        goals = [3, 5]
+        @test single_agent_pathfinding(G, paths, 2, 4, goals) == [4, 2, 5]
     end
 
     @testset "prioritized planning" begin
