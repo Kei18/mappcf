@@ -119,7 +119,8 @@ function plot_solution(
     G::Graph,
     starts::Config,
     goals::Config,
-    solution::Union{Nothing,Solution},
+    # solution::Union{Nothing,Solution},
+    solution,
     ;
     linewidth = 6,
     δ = 0.02,

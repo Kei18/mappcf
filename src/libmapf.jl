@@ -142,7 +142,7 @@ function single_agent_pathfinding(
                 v_j_from = paths[j][min(t - 1, l)]
                 v_j_to = paths[j][min(t, l)]
                 # vertex or edge collision
-                (v_i_to == v_j_to || (v_j_from == v_i_from && v_j_to == v_i_from)) &&
+                (v_i_to == v_j_to || (v_j_to == v_i_from && v_j_from == v_i_to)) &&
                     return true
             end
 

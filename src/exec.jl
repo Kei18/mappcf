@@ -4,6 +4,7 @@
     loc::Int   # location index
 end
 Crashes = Vector{Crash}
+Base.show(io::IO, c::Crash) = print(io, "Crash(when=$(c.when), who=$(c.who), loc=$(c.loc))")
 
 History = Vector{@NamedTuple {config::Config, crashes::Crashes}}
 
