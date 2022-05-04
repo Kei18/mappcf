@@ -80,7 +80,7 @@ function find_timed_path(
         end
 
         # expand
-        for u in get_neighbors(G, S.v)
+        for u in vcat(get_neighbors(G, S.v), S.v)
             num_generated_nodes += 1
             S_new = SearchNode(
                 v = u,
@@ -175,11 +175,23 @@ function prioritized_planning(
     max_makespan::Union{Nothing,Int} = 20,
     align_length::Bool = true,
     dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+    avoid_duplicates::Bool = true,
 )::Union{Nothing,Paths}
     N = length(starts)
     paths = map(i -> Path(), 1:N)
 
     for i = 1:N
+        h_func =
+            !avoid_duplicates ? (v_id) -> dist_tables[i][v_id] :
+            (v_id) -> begin
+                c = sum(map(j -> begin
+                            j > i && starts[j] == v_id && return 1
+                            j < i && return count(j -> starts[j] == v_id, i+1:N)
+                            return 0
+                        end, 1:N))
+                return dist_tables[i][v_id] + c / 1000
+            end
+
         # single-agent path finding
         path = single_agent_pathfinding(
             G,
@@ -188,7 +200,7 @@ function prioritized_planning(
             starts[i],
             goals;
             max_makespan = max_makespan,
-            h_func = (v_id) -> dist_tables[i][v_id],
+            h_func = h_func,
         )
 
         # failure case

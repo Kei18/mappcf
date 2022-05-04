@@ -4,14 +4,15 @@ function generate_random_instance_grid(;
     N::Int = rand(N_min:N_max),
     width::Int = 8,
     height::Int = 8,
-    occupancy_rate::Float64 = 0.1,
+    occupancy_rate::Real = 0.1,
 )::Tuple{Graph,Config,Config}  # graph, starts, goals
 
     G = generate_random_grid(width, height; occupancy_rate = occupancy_rate)
     vertex_ids = filter(k -> !isempty(get_neighbors(G, k)), 1:length(G))
-    @assert(N < length(vertex_ids), "too many agents on a graph")
-    starts = vertex_ids[randperm(length(vertex_ids))[1:N]]
-    goals = vertex_ids[randperm(length(vertex_ids))[1:N]]
+    @assert(N < 2 * length(vertex_ids), "too many agents on a graph")
+    random_indexes = randperm(length(vertex_ids))
+    starts = vertex_ids[random_indexes[1:N]]
+    goals = vertex_ids[random_indexes[N+1:2N]]
     return (G, starts, goals)
 end
 

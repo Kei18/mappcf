@@ -16,9 +16,12 @@ function identify_critical_sections(
             v_i = path[t_i]
             # new critical section is found
             for (j, t_j) in get!(table, v_i, [])
-                j != i &&
-                    t_j < t_i &&
+                j == i && continue
+                if t_j < t_i
                     push!(critical_sections[i], (when = t_i, who = j, loc = v_i))
+                elseif t_i < t_j
+                    push!(critical_sections[j], (when = t_j, who = i, loc = v_i))
+                end
             end
             # register new entry
             push!(table[v_i], (i, t_i))
@@ -27,7 +30,6 @@ function identify_critical_sections(
     return critical_sections
 end
 
-# TODO: manage crashed agents
 function simple_solver2(
     G::Graph,
     starts::Config,
@@ -42,7 +44,13 @@ function simple_solver2(
     dist_tables = map(g -> get_distance_table(G, g), goals)
 
     # setup initial search node
-    primary_paths = prioritized_planning(G, starts, goals; dist_tables = dist_tables)
+    primary_paths = prioritized_planning(
+        G,
+        starts,
+        goals;
+        dist_tables = dist_tables,
+        align_length = false,
+    )
     isnothing(primary_paths) && return nothing
 
     # outcome
@@ -56,15 +64,27 @@ function simple_solver2(
     )
 
     # store all search nodes, working as queue
-    OPEN = [(fill(1, N))]  # plan-index for each agent
+    OPEN = [(indexes = fill(1, N), crashes = [])]  # plan-index for each agent
 
     # BFS
     while !isempty(OPEN)
         # pop one search node
-        S = popfirst!(OPEN)
+        (S, crashes) = popfirst!(OPEN)
 
         # retrieve info
-        paths = map(k -> solution[k][S[k]].path, 1:N)
+        paths = map(k -> copy(solution[k][S[k]].path), 1:N)
+
+        correct_agents = collect(1:N)
+        for crash in crashes
+            # remove from correct agents
+            correct_agents = filter(i -> i != crash.who, correct_agents)
+            # find appropriate t
+            t = min(crash.when - 1, length(paths[crash.who]))
+            while paths[crash.who][t] != crash.loc && t > 0
+                t -= 1
+            end
+            paths[crash.who][t:end] = fill(crash.loc, length(paths[crash.who]) - t + 1)
+        end
         time_offset = maximum(map(k -> solution[k][S[k]].time_offset, 1:N))
 
         # identify critical sections
@@ -79,10 +99,8 @@ function simple_solver2(
             # reformulate paths
             paths_from_middle = map(path -> path[t-1:end], paths)
             # crashed agent
-            paths_from_middle[j] =
-                fill(paths_from_middle[j][1], length(paths_from_middle[j]))
+            paths_from_middle[j] = fill(loc, length(paths_from_middle[j]))
 
-            # find backup path
             backup_path_i = single_agent_pathfinding(
                 G,
                 paths_from_middle,
@@ -92,6 +110,7 @@ function simple_solver2(
                 max_makespan = isnothing(max_makespan) ? max_makespan :
                                max_makespan - t + 2,
                 h_func = (v) -> dist_tables[i][v],
+                correct_agents = filter(i -> i != j, correct_agents),
             )
             isnothing(backup_path_i) && return nothing
 
@@ -111,7 +130,14 @@ function simple_solver2(
                 length(solution[i])
 
             # add new search node
-            push!(OPEN, map(k -> (k == i) ? length(solution[i]) : S[k], 1:N))
+            push!(
+                OPEN,
+                (
+                    indexes = map(k -> (k == i) ? length(solution[i]) : S[k], 1:N),
+                    crashes = vcat(copy(crashes), critical_section),
+                ),
+            )
+
         end
     end
 

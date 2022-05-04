@@ -115,6 +115,45 @@ function plot_config(
     return plot!()
 end
 
+function plot_solution(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution::Union{Nothing,Solution},
+    ;
+    linewidth = 6,
+    δ = 0.02,
+    ϵ = 0.4,
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
+)
+    plot_instance(
+        G,
+        starts,
+        goals;
+        show_agent_id = show_agent_id,
+        show_vertex_id = show_vertex_id,
+    )
+    isnothing(solution) && return plot!()
+    N = length(starts)
+    for i = 1:N
+        δ_fixed = rand() * 2δ - δ
+        for (k, (path, bakcup, time_offset)) in enumerate(solution[i])
+            positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], path)...)
+            X = positions[1, :][time_offset:end]
+            Y = positions[2, :][time_offset:end]
+            plot!(
+                X,
+                Y,
+                label = nothing,
+                color = get_color(i),
+                linewidth = linewidth * (ϵ^(k - 1)),
+            )
+        end
+    end
+    plot!()
+end
+
 function plot_anim(
     G::Graph,
     hist::History;
