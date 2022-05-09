@@ -131,7 +131,6 @@ function single_agent_pathfinding(
     # check collisions
     invalid =
         (S_from::SearchNode, S_to::SearchNode) -> begin
-            # prohibit to use other goal
             v_i_from = S_from.v
             v_i_to = S_to.v
             t = S_to.t

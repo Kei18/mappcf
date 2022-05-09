@@ -63,6 +63,7 @@ function identify_critical_sections2(paths::Paths)
 end
 
 function identify_critical_sections2(paths::Paths, crashes)
+    # TODO: optimize these procedure
     critical_sectinos = identify_critical_sections2(paths)
     crashed_agents = map(c -> c.who, crashes)
 
@@ -71,8 +72,27 @@ function identify_critical_sections2(paths::Paths, crashes)
 
     # remove observations by crashed agents
     foreach(e -> filter!(o -> !(o.who in crashed_agents), e[2]), critical_sectinos)
+    filter!(e -> !isempty(e[2]), critical_sectinos)
 
     return critical_sectinos
+end
+
+function print_solution(solution)::Nothing
+    if isnothing(solution)
+        @info "solution not found"
+        return
+    end
+    @printf("solution:\n")
+    for i = 1:length(solution)
+        i > 1 && println()
+        @printf("agent-%d\n", i)
+        for (k, (path, backup, time_offset)) in enumerate(solution[i])
+            @printf("%d => %s, %s\n", k, path[1:time_offset], path[time_offset+1:end])
+            for b in sort(backup, by = (e) -> e.when)
+                @printf("\t%s\n", b)
+            end
+        end
+    end
 end
 
 function simple_solver2(
@@ -277,6 +297,13 @@ function simple_solver3(
                         v_j_to = paths_with_crash[j][min(t, length(paths_with_crash[j]))]
                         if v_j_to == v_i_to || (v_j_from == v_i_to && v_j_to == v_i_from)
                             @info "inconsistent plan"
+                            println("known_crashes: $(known_crashes)")
+                            println("new crash: $crash")
+                            println("original paths: $paths")
+                            println("paths with_crashes: $paths_with_crash")
+                            println("observations: $observations")
+                            println("replanning agents: $replanning_agents")
+                            println(i, ",", j)
                             return nothing
                         end
                     end
@@ -285,6 +312,8 @@ function simple_solver3(
 
             # re-planning
             for o in filter(o -> o.who in replanning_agents, observations)
+                crashed_agents = map(c -> c.who, vcat(known_crashes, crash))
+                correct_agents = filter(k -> !(k in crashed_agents), 1:N)
 
                 # preliminary for single-agent pathfinding
                 invalid =
@@ -299,19 +328,23 @@ function simple_solver3(
                         for j = 1:N
                             j == o.who && continue
                             l = length(paths_with_crash[j])
-                            # will be replaned -> skip
+                            # will be re-planed -> skip
                             t > l &&
                                 j in replanning_agents &&
                                 paths_with_crash[j] != goals[j] &&
                                 continue
                             # avoid collisions
                             v_j_from = paths_with_crash[j][min(t - 1, l)]
-                            v_j_to = paths[j][min(t, l)]
+                            v_j_to = paths_with_crash[j][min(t, l)]
                             (
                                 v_i_to == v_j_to ||
                                 (v_j_from == v_i_to && v_j_to == v_i_from)
                             ) && return true
                         end
+
+                        # avoid goals of others
+                        any(j -> j != o.who && goals[j] == S_to.v, correct_agents) &&
+                            return true
 
                         return false
                     end
