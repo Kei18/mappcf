@@ -401,6 +401,8 @@ function simple_solver4(
     starts::Config,
     goals::Config;
     max_makespan::Union{Nothing,Int} = 20,
+    return_incomplete_solution::Bool = false,
+    VERBOSE::Int = 0,
 )
 
     # number of agents
@@ -467,7 +469,7 @@ function simple_solver4(
 
         if isnothing(primary_path_i)
             @warn("failed to find primary path for agent-$i")
-            return solution
+            return return_incomplete_solution ? solution : nothing
         end
 
         push!(solution[i], (path = primary_path_i, backup = Dict(), time_offset = 1))
@@ -530,8 +532,8 @@ function simple_solver4(
                 )
 
                 if isnothing(backup_path_i)
-                    @warn("failed to find backup path for agent-$i")
-                    return solution
+                    VERBOSE > 0 && @warn("failed to find backup path for agent-$i")
+                    return return_incomplete_solution ? solution : nothing
                 end
                 backup_path_i = vcat(solution[i][S.id].path[1:o.when], backup_path_i[2:end])
                 # append new plan
@@ -593,6 +595,8 @@ function simple_solver5(
     starts::Config,
     goals::Config;
     max_makespan::Union{Nothing,Int} = 20,
+    return_incomplete_solution::Bool = false,
+    VERBOSE::Int = 0,
 )
 
     # number of agents
@@ -694,8 +698,8 @@ function simple_solver5(
                 )
 
                 if isnothing(backup_path_i)
-                    @warn("failed to find backup path for agent-$i")
-                    return solution
+                    VERBOSE > 0 && @warn("failed to find backup path for agent-$i")
+                    return return_incomplete_solution ? solution : nothing
                 end
                 backup_path_i = vcat(solution[i][S.id].path[1:o.when], backup_path_i[2:end])
                 # append new plan

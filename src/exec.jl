@@ -28,6 +28,10 @@ function non_anonymous_failure_detector(
     return any(crash -> crash.who == target_agent && crash.loc == target_loc, crashes)
 end
 
+function non_anonymous_failure_detector(crashes::Crashes, target_loc::Int)::Bool
+    return any(crash.loc == target_loc, crashes)
+end
+
 function is_finished(config::Config, crashes::Crashes, goals::Config, t::Int)::Bool
     return all(i -> is_crashed(crashes, i, t) || config[i] == goals[i], 1:length(config))
 end
@@ -51,13 +55,14 @@ end
 
 function synchronous_execute(
     G::Graph,
-    solution::Solution,
-    goals::Config;
+    starts::Config,
+    goals::Config,
+    solution;
     crashes = Crashes(),
     failure_prob::Real = 0,
     max_makespan::Int = 10,
     VERBOSE::Int = 0,
-)::History
+)::Union{History,Nothing}
 
     N = length(goals)
     state_ids = fill(1, N)
@@ -72,26 +77,45 @@ function synchronous_execute(
     for t = 1:max_makespan
         # state change
         for i = 1:N
+            # skip crashed agents
             is_crashed(crashes, i, t) && continue
 
             # plan update
             while true
                 # retrieve current plan
                 plan = solution[i][state_ids[i]]
-                loc_next = plan.path[t+1]
+                path = plan.path
+                loc_next = path[min(t + 1, length(path))]
 
-                # switch plan if matched
-                plan_update = false
-                for (cs, next_plan_id) in plan.backup
-                    (cs.when != t || cs.loc != loc_next) && continue
-                    !non_anonymous_failure_detector(crashes, loc_next, cs.who) && continue
-                    # check eternal loop
-                    @assert(state_ids[i] != next_plan_id, "invalid transition")
-                    state_ids[i] = next_plan_id
-                    plan_update = true
-                    break
+                # no crash at next position?
+                crash_index = findfirst(c -> c.loc == loc_next && c.when <= t, crashes)
+                isnothing(crash_index) && break
+                crash = crashes[crash_index]
+
+                # find backup path
+                backup_keys = collect(keys(plan.backup))
+                backup_index = findfirst(
+                    c -> c.when < t + 1 && c.loc == loc_next && c.who == crash.who,
+                    backup_keys,
+                )
+
+                # no backup path -> failure
+                if isnothing(backup_index)
+                    VERBOSE > 0 && @warn(
+                        @sprintf(
+                            "agent-%d has no backup path for %s at timestep-%d",
+                            i,
+                            crash,
+                            t
+                        )
+                    )
+                    return nothing
                 end
-                !plan_update && break
+
+                next_plan_id = plan.backup[backup_keys[backup_index]]
+                # check eternal loop
+                @assert(state_ids[i] != next_plan_id, "invalid transition")
+                state_ids[i] = next_plan_id
             end
         end
 
@@ -99,7 +123,8 @@ function synchronous_execute(
         for i = 1:N
             is_crashed(crashes, i, t) && continue
             loc_now = config[i]
-            loc_next = solution[i][state_ids[i]].path[t+1]
+            path = solution[i][state_ids[i]].path
+            loc_next = path[min(t + 1, length(path))]
             @assert(
                 loc_next == loc_now || loc_next in get_neighbors(G, loc_now),
                 "invalid move"
@@ -112,9 +137,35 @@ function synchronous_execute(
         # check termination
         if is_finished(config, crashes, goals, t)
             VERBOSE > 0 && @info("finish execution")
-            break
+            return hist
         end
     end
 
-    return hist
+    VERBOSE > 0 && @warn(@sprintf("reaching max_makespan%d", max_makespan))
+    return nothing
+end
+
+function sync_verification(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution;
+    num_repetition::Int = 20,
+    failure_prob::Real = 0.1,
+    max_makespan::Int = 30,
+)::Bool
+    return isnothing(solution) || all(
+        k ->
+            !isnothing(
+                synchronous_execute(
+                    G,
+                    starts,
+                    goals,
+                    solution;
+                    failure_prob = failure_prob,
+                    max_makespan = max_makespan,
+                ),
+            ),
+        1:num_repetition,
+    )
 end

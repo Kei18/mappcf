@@ -1,11 +1,10 @@
-using MAPPFD:
-    get_distance_table,
-    find_timed_path,
-    align_paths!,
-    single_agent_pathfinding,
-    prioritized_planning
-
 @testset verbose = true "libmapf" begin
+    using MAPPFD:
+        get_distance_table,
+        find_timed_path,
+        align_paths!,
+        single_agent_pathfinding,
+        prioritized_planning
 
     G = generate_sample_graph1()
 

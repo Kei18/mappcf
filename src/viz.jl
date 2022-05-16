@@ -80,6 +80,7 @@ function plot_crashes!(G::Graph, config::Config, crashes::Crashes = Crashes([]),
             filter(k -> is_crashed(crashes, k, t), 1:length(config)),
         )...,
     )
+    isempty(positions) && return plot!()
     return scatter!(
         positions[1, :],
         positions[2, :],
