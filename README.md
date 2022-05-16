@@ -28,6 +28,13 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 julia --project=. -e 'using JuliaFormatter; format(".")'
 ```
 
+adding auto formatting with commit
+
+```sh
+git config core.hooksPath .githooks
+chmod a+x .githooks/pre-commit
+```
+
 ## Reproduction
 
 ## Notes

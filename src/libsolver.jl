@@ -395,7 +395,7 @@ function simple_solver3(
     return solution
 end
 
-
+# decoupled planning
 function simple_solver4(
     G::Graph,
     starts::Config,
@@ -580,6 +580,170 @@ function identify_critical_sections3(i, path, solution, crashes, time_offset)
                 @error("identify_critical_sections3")
                 print_solution(solution)
                 return nothing
+            end
+        end
+    end
+
+    return critical_sections
+end
+
+# aggressive than simple_solver4
+function simple_solver5(
+    G::Graph,
+    starts::Config,
+    goals::Config;
+    max_makespan::Union{Nothing,Int} = 20,
+)
+
+    # number of agents
+    N = length(starts)
+
+    # compute distance tables
+    dist_tables = map(g -> get_distance_table(G, g), goals)
+
+    # setup initial search node
+    primary_paths = prioritized_planning(
+        G,
+        starts,
+        goals;
+        dist_tables = dist_tables,
+        align_length = false,
+        max_makespan = max_makespan,
+    )
+    isnothing(primary_paths) && return nothing
+
+    # outcome
+    solution = map(i -> [(path = primary_paths[i], backup = Dict(), time_offset = 1)], 1:N)
+
+    for i = 1:N
+
+        # compute backup path
+        Q = [(id = 1, crashes = [])]
+
+        # set heuristics
+        h_func = (v) -> dist_tables[i][v]
+
+        # set goal condition
+        last_timestep_goal_used = 0
+        for j = 1:N
+            j == i && continue
+            for (path,) in solution[j]
+                for t = max(1, last_timestep_goal_used):length(path)
+                    if path[t] == goals[i]
+                        last_timestep_goal_used = max(last_timestep_goal_used, t)
+                    end
+                end
+            end
+        end
+
+        check_goal = (S) -> begin
+            S.v != goals[i] && return false
+            S.t <= last_timestep_goal_used && return false
+            return true
+        end
+
+        while !isempty(Q)
+            S = popfirst!(Q)
+            # identify critical sections
+            CS = identify_critical_sections4(
+                i,
+                solution[i][S.id].path,
+                solution,
+                S.crashes,
+                solution[i][S.id].time_offset,
+            )
+
+            for (crash, o) in CS
+                haskey(solution[i][S.id].backup, crash) && continue
+                crashes = vcat(S.crashes, crash)
+                crashed_agents = map(c -> c.who, crashes)
+                correct_agents = filter(j -> !(j == i || j in crashed_agents), 1:N)
+
+                # set collision conditions
+                invalid =
+                    (S_from, S_to) -> begin
+                        v = S_to.v
+                        t = S_to.t + o.when - 1
+
+                        # check maximum timestep
+                        !isnothing(max_makespan) && t > max_makespan && return true
+
+                        # prohibit to use other goals
+                        any(j -> goals[j] == v, correct_agents) && return true
+
+                        # prohibit new critical sections for already planned paths
+                        for j in correct_agents
+                            for (path,) in solution[j]
+                                v in path[t:length(path)] && return true
+                            end
+                        end
+
+                        # avoid locations of crashed
+                        any(c -> c.loc == v && c.when <= t, crashes) && return true
+
+                        return false
+                    end
+
+                # find backup path
+                backup_path_i = find_timed_path(
+                    G,
+                    o.observation_loc,
+                    check_goal;
+                    invalid = invalid,
+                    h_func = h_func,
+                )
+
+                if isnothing(backup_path_i)
+                    @warn("failed to find backup path for agent-$i")
+                    return solution
+                end
+                backup_path_i = vcat(solution[i][S.id].path[1:o.when], backup_path_i[2:end])
+                # append new plan
+                push!(
+                    solution[i],
+                    (path = backup_path_i, backup = Dict(), time_offset = o.when),
+                )
+                solution[i][S.id].backup[crash] = length(solution[i])
+                push!(Q, (id = length(solution[i]), crashes = crashes))
+            end
+        end
+    end
+
+    return solution
+end
+
+
+function identify_critical_sections4(i, path, solution, crashes, time_offset)
+
+    N = length(solution)
+
+    # assumed to be used with prioritized planning
+    critical_sections = []
+    crashed_agents = map(c -> c.who, crashes)
+
+    # create collision table
+    table = Dict()
+    for j = 1:N
+        (j == i || j in crashed_agents) && continue
+        for (path_j,) in solution[j]
+            for t_j = 1:length(path_j)
+                loc = path_j[t_j]
+                get!(table, loc, [])
+                push!(table[loc], (j, t_j))
+            end
+        end
+    end
+
+    # identify critical sections
+    for (k, loc) in enumerate(path[time_offset+1:end])
+        t_i = k + time_offset
+        for (j, t_j) in get!(table, loc, [])
+            if t_j < t_i
+                crash = Crash(when = t_j, who = j, loc = loc)
+                push!(
+                    critical_sections,
+                    (crash, (when = t_i - 1, who = i, observation_loc = path[t_i-1])),
+                )
             end
         end
     end

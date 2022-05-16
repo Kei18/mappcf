@@ -43,6 +43,13 @@ function generate_grid(
     return G
 end
 
+function add_edges!(G::Graph, edges...)::Nothing
+    for (u, v) in edges
+        push!(get(G, u).neigh, v)
+        push!(get(G, v).neigh, u)
+    end
+end
+
 function generate_random_grid(
     width::Int = 8,
     height::Int = 8;
