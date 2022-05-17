@@ -4,9 +4,14 @@
         find_timed_path,
         align_paths!,
         single_agent_pathfinding,
-        prioritized_planning
+        prioritized_planning,
+        verify_mapf_solution,
+        astar_operator_decomposition
 
     G = generate_sample_graph1()
+    starts = [1, 4]
+    goals = [3, 5]
+    ins = (G, starts, goals)
 
     @testset "distance table" begin
         # distance table
@@ -35,9 +40,41 @@
         @test single_agent_pathfinding(G, paths, 2, 4, goals) == [4, 2, 5]
     end
 
+    @testset "verify_mapf_solution" begin
+        # correct
+        solution = [[1, 2, 3], [4, 1, 5]]
+        @test verify_mapf_solution(ins..., solution)
+
+        # invalid starts
+        solution = [[2, 3], [4, 1, 5]]
+        @test !verify_mapf_solution(ins..., solution)
+
+        # invalid goal
+        solution = [[1, 2, 3], [4, 1]]
+        @test !verify_mapf_solution(ins..., solution)
+
+        # vertex conflict
+        solution = [[1, 2, 3], [4, 2, 5]]
+        @test !verify_mapf_solution(ins..., solution)
+
+        # swap conflict
+        solution = [[1, 4, 2, 3], [4, 1, 5]]
+        @test !verify_mapf_solution(ins..., solution)
+
+        # continuity
+        solution = [[1, 3], [4, 1, 5]]
+        @test !verify_mapf_solution(ins..., solution)
+
+    end
+
     @testset "prioritized planning" begin
-        starts = [1, 4]
-        goals = [3, 5]
-        @test prioritized_planning(G, starts, goals) == [[1, 2, 3], [4, 1, 5]]
+        solution = prioritized_planning(ins...)
+        @test verify_mapf_solution(ins..., solution)
+        @test solution == [[1, 2, 3], [4, 1, 5]]
+    end
+
+    @testset "astar_operator_decomposition" begin
+        solution = astar_operator_decomposition(ins...)
+        @test verify_mapf_solution(ins..., solution; VERBOSE = 1)
     end
 end

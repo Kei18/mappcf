@@ -213,3 +213,135 @@ function prioritized_planning(
 
     return paths
 end
+
+@kwdef mutable struct AODNode
+    Q::Config
+    Q_prev::Config
+    next::Int
+    id::String = get_Q_id(Q, next)
+    parent_id::Union{Nothing,String} = nothing  # parent node
+    g::Float64 = 0.0  # g-value
+    h::Float64 = 0.0  # h-value
+    f::Float64 = g + h  # f-value
+end
+
+
+function astar_operator_decomposition(
+    G::Graph,
+    starts::Config,
+    goals::Config;
+    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+)::Union{Nothing,Paths}
+
+    # greedy search
+
+    N = length(starts)
+    OPEN = PriorityQueue{AODNode,Float64}()
+    VISITED = Dict{String,AODNode}()
+
+    # setup initial node
+    Q_init = copy(starts)
+    h_init = sum(i -> dist_tables[i][Q_init[i]], 1:N)
+    S_init = AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
+    enqueue!(OPEN, S_init, S_init.f)
+    VISITED[S_init.id] = S_init
+
+    loop_cnt = 0
+    while !isempty(OPEN)
+        loop_cnt += 1
+
+        # pop
+        S = dequeue!(OPEN)
+
+        # check goal, backtracking
+        if S.Q == goals && S.next == 1
+            paths = map(j -> Vector{Int}(), 1:N)
+            while !isnothing(S.parent_id)
+                S.next == 1 && foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+                S = VISITED[S.parent_id]
+            end
+            foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+            return paths
+        end
+
+        # expand
+        i = S.next
+        j = mod1(S.next + 1, N)
+        u = S.Q[i]
+        for v in vcat(get_neighbors(G, u), u)
+            Q_new = copy(S.Q)
+            Q_new[i] = v
+            # check collision
+            any(j -> Q_new[j] == v || (Q_new[j] == u && S.Q_prev[j] == v), 1:i-1) &&
+                continue
+
+            h = S.h - dist_tables[i][u] + dist_tables[i][v]
+            S_new = AODNode(
+                Q = Q_new,
+                Q_prev = (j == 1) ? copy(S.Q) : copy(S.Q_prev),
+                next = j,
+                h = h,
+                parent_id = S.id,
+            )
+            # avoid duplication
+            haskey(VISITED, S_new.id) && continue
+            # insert
+            enqueue!(OPEN, S_new, S_new.f)
+            VISITED[S_new.id] = S_new
+        end
+    end
+end
+
+
+function get_Q_id(Q::Config, next::Int)::String
+    return @sprintf("%s_%d", join(Q, "-"), next)
+end
+
+
+function verify_mapf_solution(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution::Union{Nothing,Paths};
+    VERBOSE::Int = 0,
+)
+
+    N = length(starts)
+
+    # starts
+    if any(i -> first(solution[i]) != starts[i], 1:N)
+        VERBOSE > 0 && @warn("inconsistent starts")
+        return false
+    end
+    # goals
+    if any(i -> last(solution[i]) != goals[i], 1:N)
+        VERBOSE > 0 && @warn("inconsistent goals")
+        return false
+    end
+
+    # check for each timestep
+    T = maximum(i -> length(solution[i]), 1:N)
+    for t = 1:T
+        for i = 1:N
+            v_i_now = solution[i][t]
+            v_i_pre = solution[i][max(1, t - 1)]
+            # check continuity
+            if !(v_i_now in vcat(get_neighbors(G, v_i_pre), v_i_pre))
+                VERBOSE > 0 && @warn("$agent-(i)'s path is invalid at timestep $(t)")
+                return false
+            end
+            # check collisions
+            for j = i+1:N
+                v_j_now = solution[j][t]
+                v_j_pre = solution[j][max(1, t - 1)]
+                if v_i_now == v_j_now || (v_i_now == v_j_pre && v_i_pre == v_j_now)
+                    VERBOSE > 0 &&
+                        @warn("collisions between $(i) and $(j) at timestep $(t)")
+                    return false
+                end
+            end
+        end
+    end
+
+    return true
+end
