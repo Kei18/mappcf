@@ -53,6 +53,79 @@ function emulate_crashes!(
     end
 end
 
+
+function synchronous_global_execute(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution;
+    crashes = Crashes(),
+    failure_prob::Real = 0,
+    max_makespan::Int = 10,
+    VERBOSE::Int = 0,
+)::Union{History,Nothing}
+
+    N = length(goals)
+    state_ids = fill(1, N)
+    config = copy(starts)
+    hist = History()
+
+    VERBOSE > 0 && @info("start synchronous execution")
+    # initial step
+    emulate_crashes!(config, crashes, 1, failure_prob = failure_prob, VERBOSE = VERBOSE)
+    push!(hist, (config = copy(config), crashes = copy(crashes)))
+
+    plan = solution
+    for t = 1:max_makespan
+        # update plan
+        for crash in filter(c -> c.when == t, crashes)
+            if haskey(plan.backups, crash)
+                plan = plan.backups[crash]
+            end
+        end
+        # update config
+        config_prev = copy(config)
+        for i = 1:N
+            is_crashed(crashes, i, t) && continue
+            loc_now = config[i]
+            path = plan.paths[i]
+            loc_next = path[min(t - plan.time_offset + 2, length(path))]
+            @assert(
+                loc_next == loc_now || loc_next in get_neighbors(G, loc_now),
+                "invalid move"
+            )
+            config[i] = loc_next
+        end
+        # check consistency
+        for i = 1:N
+            if config[i] != config_prev[i] &&
+               !(config[i] in get_neighbors(G, config_prev[i]))
+                VERBOSE > 0 && @warn(
+                    "invalid execution, move for agent-$i from v-$(config[i]) to v-$(config_prev[i])"
+                )
+                return nothing
+            end
+            for j = i+1:N
+                if config[i] == config[j] ||
+                   (config[i] == config_prev[j] && config_prev[i] == config[j])
+                    VERBOSE > 0 && @warn("invalid execution, collision between $i and $j")
+                    return nothing
+                end
+            end
+        end
+
+
+        emulate_crashes!(config, crashes, t; failure_prob = failure_prob)
+        push!(hist, (config = copy(config), crashes = copy(crashes)))
+
+        # check termination
+        if is_finished(config, crashes, goals, t)
+            VERBOSE > 0 && @info("finish execution")
+            return hist
+        end
+    end
+end
+
 function synchronous_execute(
     G::Graph,
     starts::Config,

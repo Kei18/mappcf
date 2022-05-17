@@ -16,11 +16,7 @@ function get_neighbors(G::Graph, loc::Int)::Vector{Int}
     return G[loc].neigh
 end
 
-function generate_grid(
-    width::Int = 5,
-    height::Int = 3;
-    obstacle_locs::Vector{Int} = Vector{Int}(),
-)::Graph
+function generate_grid(width::Int = 5, height::Int = 3; obstacle_locs = [])::Graph
     G = Graph()
     for j = 1:height, i = 1:width
         neigh = []
@@ -43,10 +39,21 @@ function generate_grid(
     return G
 end
 
+function generate_grid(width::Int = 5, height::Int = 3, args...)::Graph
+    generate_grid(width, height; obstacle_locs = args)
+end
+
 function add_edges!(G::Graph, edges...)::Nothing
     for (u, v) in edges
         push!(get(G, u).neigh, v)
         push!(get(G, v).neigh, u)
+    end
+end
+
+function remove_edges!(G::Graph, edges...)::Nothing
+    for (u, v) in edges
+        filter!(w -> w != v, get(G, u).neigh)
+        filter!(w -> w != u, get(G, v).neigh)
     end
 end
 
@@ -89,5 +96,11 @@ function generate_sample_graph1()::Graph
         push!(G[j].neigh, i)
     end
 
+    return G
+end
+
+function generate_sample_graph2()::Graph
+    G = generate_grid(5, 5, 21, 23, 24, 25, 18, 20, 8)
+    remove_edges!(G, (2, 7), (4, 9), (9, 10))
     return G
 end

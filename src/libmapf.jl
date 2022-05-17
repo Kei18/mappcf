@@ -98,6 +98,15 @@ function find_timed_path(
     return nothing
 end
 
+function remove_redundant_vertices!(paths::Paths)::Nothing
+    N = length(paths)
+    for i = 1:N
+        while length(paths[i]) > 1 && paths[i][end-1] == paths[i][end]
+            pop!(paths[i])
+        end
+    end
+end
+
 function align_paths!(paths::Paths)::Nothing
     max_len = maximum(map(length, paths))
     N = length(paths)
@@ -269,6 +278,74 @@ function astar_operator_decomposition(
         j = mod1(S.next + 1, N)
         u = S.Q[i]
         for v in vcat(get_neighbors(G, u), u)
+            Q_new = copy(S.Q)
+            Q_new[i] = v
+            # check collision
+            any(j -> Q_new[j] == v || (Q_new[j] == u && S.Q_prev[j] == v), 1:i-1) &&
+                continue
+
+            h = S.h - dist_tables[i][u] + dist_tables[i][v]
+            S_new = AODNode(
+                Q = Q_new,
+                Q_prev = (j == 1) ? copy(S.Q) : copy(S.Q_prev),
+                next = j,
+                h = h,
+                parent_id = S.id,
+            )
+            # avoid duplication
+            haskey(VISITED, S_new.id) && continue
+            # insert
+            enqueue!(OPEN, S_new, S_new.f)
+            VISITED[S_new.id] = S_new
+        end
+    end
+end
+
+function astar_operator_decomposition(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    crashed_agents::Vector{Int} = Vector{Int}(),
+    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+)::Union{Nothing,Paths}
+
+    N = length(starts)
+    correct_agents = filter(i -> !(i in crashed_agents), 1:N)
+
+    OPEN = PriorityQueue{AODNode,Float64}()
+    VISITED = Dict{String,AODNode}()
+
+    # setup initial node
+    Q_init = copy(starts)
+    h_init = sum(i -> dist_tables[i][Q_init[i]], 1:N)
+    S_init = AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
+    enqueue!(OPEN, S_init, S_init.f)
+    VISITED[S_init.id] = S_init
+
+    loop_cnt = 0
+    while !isempty(OPEN)
+        loop_cnt += 1
+
+        # pop
+        S = dequeue!(OPEN)
+
+        # check goal, backtracking
+        if all(k -> S.Q[k] == goals[k], correct_agents) && S.next == 1
+            paths = map(j -> Vector{Int}(), 1:N)
+            while !isnothing(S.parent_id)
+                S.next == 1 && foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+                S = VISITED[S.parent_id]
+            end
+            foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+            remove_redundant_vertices!(paths)
+            return paths
+        end
+
+        # expand
+        i = S.next
+        j = mod1(S.next + 1, N)
+        u = S.Q[i]
+        for v in ((i in crashed_agents) ? [u] : vcat(get_neighbors(G, u), u))
             Q_new = copy(S.Q)
             Q_new[i] = v
             # check collision

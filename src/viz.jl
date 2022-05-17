@@ -110,8 +110,16 @@ function plot_config(
     crashes::Crashes = Crashes([]),
     t::Int = 1;
     goals::Config = Config([]),
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
 )
-    plot_instance(G, config, goals)
+    plot_instance(
+        G,
+        config,
+        goals;
+        show_vertex_id = show_vertex_id,
+        show_agent_id = show_agent_id,
+    )
     plot_crashes!(G, config, crashes, t)
     return plot!()
 end
@@ -120,7 +128,6 @@ function plot_solution(
     G::Graph,
     starts::Config,
     goals::Config,
-    # solution::Union{Nothing,Solution},
     solution,
     ;
     linewidth = 6,
@@ -156,16 +163,95 @@ function plot_solution(
     plot!()
 end
 
+function plot_solution_global_FD(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution,
+    ;
+    linewidth = 6,
+    δ = 0.02,
+    ϵ = 0.4,
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
+)
+    plot_instance(
+        G,
+        starts,
+        goals;
+        show_agent_id = show_agent_id,
+        show_vertex_id = show_vertex_id,
+    )
+    isnothing(solution) && return plot!()
+    N = length(starts)
+
+    myplot(plan, depth = 0) = begin
+        for (i, path) in enumerate(plan.paths)
+            δ_fixed = rand() * 2δ - δ
+            positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], path)...)
+            plot!(
+                positions[1, :],
+                positions[2, :],
+                label = nothing,
+                color = get_color(i),
+                linewidth = linewidth * (ϵ^(depth)),
+            )
+        end
+        foreach(backup -> myplot(backup, depth + 1), values(plan.backups))
+    end
+    myplot(solution)
+    plot!()
+end
+
+function plot_paths(
+    G::Graph,
+    paths::Paths;
+    show_vertex_id::Bool = false,
+    show_agent_id::Bool = false,
+    linewidth::Real = 2,
+    δ = 0.02,
+)
+    plot_instance(
+        G,
+        map(first, paths),
+        map(last, paths);
+        show_agent_id = show_agent_id,
+        show_vertex_id = show_vertex_id,
+    )
+    for (i, path) in enumerate(paths)
+        δ_fixed = rand() * 2δ - δ
+        positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], path)...)
+        plot!(
+            positions[1, :],
+            positions[2, :],
+            label = nothing,
+            color = get_color(i),
+            linewidth = linewidth,
+        )
+    end
+
+    return plot!()
+end
+
 function plot_anim(
     G::Graph,
     hist::History;
     interpolate_nums::Int = 2,
     filename::String = "tmp.gif",
     fps::Int64 = 3,
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
 )
     N = length(hist[1].config)
     anim = @animate for (k, (config, crashes)) in enumerate(hist)
-        plot_config(G, config, crashes, k)
+        plot_config(
+            G,
+            config,
+            crashes,
+            k;
+            show_agent_id = show_agent_id,
+            show_vertex_id = show_vertex_id,
+        )
 
         # plot intermediate status
         if k > 1 && interpolate_nums > 0
