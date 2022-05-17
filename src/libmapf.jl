@@ -232,6 +232,7 @@ end
     g::Float64 = 0.0  # g-value
     h::Float64 = 0.0  # h-value
     f::Float64 = g + h  # f-value
+    timestep::Int = 1
 end
 
 
@@ -306,6 +307,9 @@ function astar_operator_decomposition(
     starts::Config,
     goals::Config,
     crashed_agents::Vector{Int} = Vector{Int}(),
+    constraints = [],
+    time_offset::Int = 1,
+    ;
     dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
 )::Union{Nothing,Paths}
 
@@ -351,6 +355,16 @@ function astar_operator_decomposition(
             # check collision
             any(j -> Q_new[j] == v || (Q_new[j] == u && S.Q_prev[j] == v), 1:i-1) &&
                 continue
+            # check constraints
+            i in correct_agents &&
+                any(
+                    c ->
+                        c.loc == v &&
+                            c.who == i &&
+                            c.when - time_offset + 1 <= S.timestep + 1,
+                    constraints,
+                ) &&
+                continue
 
             h = S.h - dist_tables[i][u] + dist_tables[i][v]
             S_new = AODNode(
@@ -359,6 +373,7 @@ function astar_operator_decomposition(
                 next = j,
                 h = h,
                 parent_id = S.id,
+                timestep = (j == 1) ? S.timestep + 1 : S.timestep,
             )
             # avoid duplication
             haskey(VISITED, S_new.id) && continue

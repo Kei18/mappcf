@@ -6,45 +6,71 @@ function complete_algorithm(
     crashes = Crashes(),
     time_offset::Int = 1,
     VERBOSE::Int = 0,
+    parent_constrations = [],
 )
     N = length(starts)
+    constraints = copy(parent_constrations)
 
-    # find collision free paths
-    paths = astar_operator_decomposition(G, starts, goals, map(c -> c.who, crashes))
-    if isnothing(paths)
-        VERBOSE > 0 && @info("low-level search failure\n$(crashes)")
-        return nothing
-    end
-
-    # identify critical sections
-    critical_crashes = identify_critical_crashes(paths, crashes, time_offset)
-
+    replanning_flg = true
     backups = Dict()
-    for new_crash in critical_crashes
-        backup = complete_algorithm(
+    paths = Paths()
+    while replanning_flg
+        replanning_flg = false
+
+        # find collision free paths
+        paths = astar_operator_decomposition(
             G,
-            map(
-                i -> paths[i][min(new_crash.when - time_offset + 1, length(paths[i]))],
-                1:N,
-            ),
-            goals;
-            crashes = vcat(crashes, new_crash),
-            time_offset = new_crash.when,
-            VERBOSE = VERBOSE,
+            starts,
+            goals,
+            map(c -> c.who, crashes),
+            constraints,
+            time_offset,
         )
-        isnothing(backup) && return nothing
-        backups[new_crash] = backup
+        if isnothing(paths)
+            s = "low-level search failure\n"
+            s *= "crashes: $(crashes)\n"
+            s *= "constraints: $(constraints)\n"
+            s *= "starts: $(starts)\n"
+            s *= "time_offset:$(time_offset)"
+            VERBOSE > 0 && @info(s)
+            return nothing
+        end
+
+        # identify critical sections
+        critical_sections = identify_critical_sections5(paths, crashes, time_offset)
+
+        for (crash, effect) in critical_sections
+            backup = complete_algorithm(
+                G,
+                map(
+                    i -> paths[i][min(crash.when - time_offset + 1, length(paths[i]))],
+                    1:N,
+                ),
+                goals;
+                crashes = vcat(crashes, crash),
+                time_offset = crash.when,
+                parent_constrations = constraints,
+                VERBOSE = VERBOSE,
+            )
+            if isnothing(backup)  # re-planning
+                push!(constraints, effect)
+                replanning_flg = true
+                backups = Dict()
+                break
+            end
+            backups[crash] = backup
+        end
     end
 
     return (paths = paths, time_offset = time_offset, backups = backups)
 end
 
 
-function identify_critical_crashes(
+function identify_critical_sections5(
     paths::Paths,
     crashes::Crashes = Crashes(),
     time_offset::Int = 1,
-)::Crashes
+)
 
     critical_sections = []
     table = Dict()   # vertex => [ (who, when) ]
@@ -57,12 +83,18 @@ function identify_critical_crashes(
                 if t_j < t_i
                     push!(
                         critical_sections,
-                        Crash(when = t_j + time_offset - 1, who = j, loc = loc),
+                        (
+                            crash = Crash(when = t_j + time_offset - 1, who = j, loc = loc),
+                            effect = (when = t_i + time_offset - 1, who = i, loc = loc),
+                        ),
                     )
                 elseif t_i < t_j
                     push!(
                         critical_sections,
-                        Crash(when = t_i + time_offset - 1, who = i, loc = loc),
+                        (
+                            crash = Crash(when = t_i + time_offset - 1, who = i, loc = loc),
+                            effect = (when = t_j + time_offset - 1, who = j, loc = loc),
+                        ),
                     )
                 end
             end

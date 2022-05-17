@@ -10,10 +10,10 @@ import ColorSchemes
 include("graph.jl")
 include("libmapf.jl")
 include("libsolver.jl")
-include("complete_algo.jl")
 include("exec.jl")
 include("utils.jl")
 include("viz.jl")
+include("complete_algo.jl")
 
 export Config, Crash, Crashes, History
 export is_occupied, is_crashed, non_anonymous_failure_detector
