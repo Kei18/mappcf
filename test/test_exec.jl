@@ -1,6 +1,10 @@
 @testset verbose = true "oracles" begin
     using MAPPFD:
-        is_occupied, is_finished, non_anonymous_failure_detector, sync_verification
+        is_occupied,
+        is_finished,
+        non_anonymous_failure_detector,
+        sync_verification,
+        sync_global_verification
     import Random: seed!
 
     G = generate_sample_graph1()
@@ -80,5 +84,22 @@
         ])
         seed!(1)
         @test !sync_verification(ins..., solution; failure_prob = 0.5)
+    end
+
+    @testset "sync_global_verification" begin
+        solution = (
+            paths = [[1, 2, 3], [4, 1, 5]],
+            time_offset = 1,
+            backups = Dict(
+                Crash(who = 1, when = 1, loc = 1) =>
+                    (paths = [[1], [4, 2, 5]], time_offset = 1, backups = ()),
+            ),
+        )
+        seed!(1)
+        @test sync_global_verification(ins..., solution; failure_prob = 0.5)
+
+        solution = (paths = [[1, 2, 3], [4, 1, 5]], time_offset = 1, backups = Dict())
+        seed!(1)
+        @test !sync_global_verification(ins..., solution; failure_prob = 0.5)
     end
 end

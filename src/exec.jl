@@ -79,7 +79,7 @@ function synchronous_global_execute(
     for t = 1:max_makespan
         # update plan
         for crash in filter(c -> c.when == t, crashes)
-            if haskey(plan.backups, crash)
+            if !isempty(plan.backups) && haskey(plan.backups, crash)
                 plan = plan.backups[crash]
             end
         end
@@ -125,6 +125,32 @@ function synchronous_global_execute(
         end
     end
 end
+
+function sync_global_verification(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution;
+    num_repetition::Int = 20,
+    failure_prob::Real = 0.1,
+    max_makespan::Int = 30,
+)::Bool
+    return isnothing(solution) || all(
+        k ->
+            !isnothing(
+                synchronous_global_execute(
+                    G,
+                    starts,
+                    goals,
+                    solution;
+                    failure_prob = failure_prob,
+                    max_makespan = max_makespan,
+                ),
+            ),
+        1:num_repetition,
+    )
+end
+
 
 function synchronous_execute(
     G::Graph,

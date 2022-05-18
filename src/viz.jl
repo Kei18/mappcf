@@ -104,6 +104,18 @@ function plot_instance(
     return plot!()
 end
 
+function plot_instance(
+    ins::Tuple{Graph,Config,Config};
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
+)
+    return plot_instance(
+        ins...;
+        show_agent_id = show_agent_id,
+        show_vertex_id = show_vertex_id,
+    )
+end
+
 function plot_config(
     G::Graph,
     config::Config,

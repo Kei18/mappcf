@@ -1,4 +1,3 @@
-# not complete yet
 function complete_algorithm(
     G::Graph,
     starts::Config,
