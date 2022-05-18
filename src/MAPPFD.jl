@@ -9,6 +9,7 @@ import ColorSchemes
 
 include("graph.jl")
 include("libmapf.jl")
+include("libotimapp.jl")
 include("libsolver.jl")
 include("exec.jl")
 include("utils.jl")

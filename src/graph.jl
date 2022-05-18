@@ -104,3 +104,10 @@ function generate_sample_graph2()::Graph
     remove_edges!(G, (2, 7), (4, 9), (9, 10))
     return G
 end
+
+function generate_sample_graph3()::Graph
+    G = generate_grid(5, 2, 1, 4, 5)
+    remove_edges!(G, (2, 7), (3, 8), (2, 3))
+    add_edges!(G, (2, 8), (3, 9), (3, 8))
+    return G
+end
