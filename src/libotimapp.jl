@@ -7,13 +7,16 @@
 end
 
 # seq model
-function seq_prioritized_planning(G::Graph, starts::Config, goals::Config; VERBOSE::Int = 0)
+function seq_prioritized_planning(
+    G::Graph,
+    starts::Config,
+    goals::Config;
+    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+    VERBOSE::Int = 0,
+)
 
     N = length(starts)
     paths = map(i -> Path(), 1:N)
-
-    # compute distance tables
-    dist_tables = map(g -> get_distance_table(G, g), goals)
 
     # fragments table
     T_f = Dict{Int,Vector}()  # from

@@ -5,6 +5,11 @@
 end
 Crashes = Vector{Crash}
 Base.show(io::IO, c::Crash) = print(io, "Crash(when=$(c.when), who=$(c.who), loc=$(c.loc))")
+Base.show(io::IO, crashes::Crashes) = begin
+    print(io, "[\n")
+    foreach(c -> print(io, "\t$c\n"), crashes)
+    print(io, "]")
+end
 
 History = Vector{@NamedTuple {config::Config, crashes::Crashes}}
 
@@ -61,7 +66,7 @@ function synchronous_global_execute(
     solution;
     crashes = Crashes(),
     failure_prob::Real = 0,
-    max_makespan::Int = 10,
+    max_makespan::Int = 20,
     VERBOSE::Int = 0,
 )::Union{History,Nothing}
 
@@ -108,14 +113,20 @@ function synchronous_global_execute(
             for j = i+1:N
                 if config[i] == config[j] ||
                    (config[i] == config_prev[j] && config_prev[i] == config[j])
-                    VERBOSE > 0 && @warn("invalid execution, collision between $i and $j")
+                    if VERBOSE > 0
+                        s = "invalid execution, collision between"
+                        s *= "$i ($(config_prev[i]) -> $(config[i])) and "
+                        s *= "$j ($(config_prev[j]) -> $(config[j]))\n"
+                        s *= "crashes: $crashes"
+                        @warn(s)
+                    end
                     return nothing
                 end
             end
         end
 
 
-        emulate_crashes!(config, crashes, t; failure_prob = failure_prob)
+        emulate_crashes!(config, crashes, t + 1; failure_prob = failure_prob)
         push!(hist, (config = copy(config), crashes = copy(crashes)))
 
         # check termination
@@ -124,6 +135,9 @@ function synchronous_global_execute(
             return hist
         end
     end
+
+    VERBOSE > 0 && @info("fail to reach the termination")
+    return nothing
 end
 
 function sync_global_verification(

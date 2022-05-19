@@ -306,7 +306,7 @@ function astar_operator_decomposition(
     G::Graph,
     starts::Config,
     goals::Config,
-    crashed_agents::Vector{Int} = Vector{Int}(),
+    crashes = [],
     constraints = [],
     time_offset::Int = 1,
     ;
@@ -314,6 +314,7 @@ function astar_operator_decomposition(
 )::Union{Nothing,Paths}
 
     N = length(starts)
+    crashed_agents::Vector{Int} = map(c -> c.who, crashes)
     correct_agents = filter(i -> !(i in crashed_agents), 1:N)
 
     OPEN = PriorityQueue{AODNode,Float64}()

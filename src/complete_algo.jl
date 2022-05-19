@@ -1,3 +1,4 @@
+# sync, global failure detector
 function complete_algorithm(
     G::Graph,
     starts::Config,
@@ -6,64 +7,39 @@ function complete_algorithm(
     time_offset::Int = 1,
     VERBOSE::Int = 0,
     parent_constrations = [],
+    mapf_planner::Function = astar_operator_decomposition,  # MAPF algorithm
 )
-    N = length(starts)
     constraints = copy(parent_constrations)
-
-    replanning_flg = true
+    @label start_planning
+    # compute collision-free paths
+    paths = mapf_planner(G, starts, goals, crashes, constraints, time_offset)
+    # planning failure
+    isnothing(paths) && return nothing
+    # identify critical sections
+    critical_sections = identify_critical_sections5(paths, crashes, time_offset)
+    # compute backup paths
     backups = Dict()
-    paths = Paths()
-    while replanning_flg
-        replanning_flg = false
-
-        # find collision free paths
-        paths = astar_operator_decomposition(
+    for (crash, effect) in critical_sections
+        # recursive call
+        backups[crash] = complete_algorithm(
             G,
-            starts,
-            goals,
-            map(c -> c.who, crashes),
-            constraints,
-            time_offset,
+            map(p -> get_in_range(p, crash.when - time_offset + 1), paths),   # new starts
+            goals;
+            crashes = vcat(crashes, crash),
+            time_offset = crash.when,
+            parent_constrations = constraints,
+            VERBOSE = VERBOSE,
         )
-        if isnothing(paths)
-            s = "low-level search failure\n"
-            s *= "crashes: $(crashes)\n"
-            s *= "constraints: $(constraints)\n"
-            s *= "starts: $(starts)\n"
-            s *= "time_offset:$(time_offset)"
-            VERBOSE > 0 && @info(s)
-            return nothing
-        end
-
-        # identify critical sections
-        critical_sections = identify_critical_sections5(paths, crashes, time_offset)
-
-        for (crash, effect) in critical_sections
-            backup = complete_algorithm(
-                G,
-                map(
-                    i -> paths[i][min(crash.when - time_offset + 1, length(paths[i]))],
-                    1:N,
-                ),
-                goals;
-                crashes = vcat(crashes, crash),
-                time_offset = crash.when,
-                parent_constrations = constraints,
-                VERBOSE = VERBOSE,
-            )
-            if isnothing(backup)  # re-planning
-                push!(constraints, effect)
-                replanning_flg = true
-                backups = Dict()
-                break
-            end
-            backups[crash] = backup
+        # failed to find backup path
+        if isnothing(backups[crash])
+            # update constrains
+            push!(constraints, effect)
+            # re-planning
+            @goto start_planning  # I hate goto statement but useful...
         end
     end
-
     return (paths = paths, time_offset = time_offset, backups = backups)
 end
-
 
 function identify_critical_sections5(
     paths::Paths,
@@ -102,4 +78,24 @@ function identify_critical_sections5(
         end
     end
     return critical_sections
+end
+
+
+function print_solution_global_FD(solution, depth = 0)
+    N = length(solution.paths)
+    print("\t"^depth, " t: ")
+    T = maximum(length, solution.paths)
+    foreach(t -> @printf("%3d    ", t), 1:T)
+    println("\n", "\t"^depth, "--:", ("-"^7)^T)
+
+    for (i, path) in enumerate(solution.paths)
+        print("\t"^depth)
+        @printf("%2d: %s", i, "       "^(solution.time_offset - 1))
+        foreach(v -> @printf("%3d -> ", v), path)
+        println()
+    end
+    for (crash, backup_plan) in solution.backups
+        println("\n", "\t"^(depth + 1), crash)
+        print_solution_global_FD(backup_plan, depth + 1)
+    end
 end

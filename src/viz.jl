@@ -253,6 +253,7 @@ function plot_anim(
     fps::Int64 = 3,
     show_agent_id::Bool = false,
     show_vertex_id::Bool = false,
+    goals::Union{Nothing,Config} = nothing,
 )
     N = length(hist[1].config)
     anim = @animate for (k, (config, crashes)) in enumerate(hist)
@@ -264,6 +265,7 @@ function plot_anim(
             show_agent_id = show_agent_id,
             show_vertex_id = show_vertex_id,
         )
+        !isnothing(goals) && plot_goals!(G, goals)
 
         # plot intermediate status
         if k > 1 && interpolate_nums > 0
