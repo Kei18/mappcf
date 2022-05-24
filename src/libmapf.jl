@@ -1,31 +1,3 @@
-function get_distance_table(G::Graph, goal::Int)::Vector{Int}
-    table = fill(typemax(Int), length(G))
-    OPEN = PriorityQueue{Int,Int}()
-
-    # setup initial vertex
-    table[goal] = 0
-    enqueue!(OPEN, goal, 0)
-
-    while !isempty(OPEN)
-        # pop
-        loc = dequeue!(OPEN)
-        d = table[loc]
-
-        # expand
-        for u_id in get_neighbors(G, loc)
-            g = d + 1
-            # update distance
-            if g < table[u_id]
-                haskey(OPEN, u_id) && delete!(OPEN, u_id)
-                table[u_id] = g
-                enqueue!(OPEN, u_id, g)
-            end
-        end
-    end
-
-    return table
-end
-
 @kwdef struct SearchNode
     v::Int64  # where
     t::Int64  # when
@@ -182,7 +154,7 @@ function prioritized_planning(
     goals::Config;
     max_makespan::Union{Nothing,Int} = 20,
     align_length::Bool = true,
-    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+    dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
     avoid_duplicates::Bool = true,
 )::Union{Nothing,Paths}
     N = length(starts)
@@ -306,9 +278,9 @@ function astar_operator_decomposition(
     G::Graph,
     starts::Config,
     goals::Config,
-    crashes = [],
-    constraints = [],
-    time_offset::Int = 1,
+    crashes,
+    constraints,
+    time_offset::Int,
     ;
     dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
 )::Union{Nothing,Paths}

@@ -214,54 +214,6 @@ function inconsistent(crashes_i, crashes_j)::Bool
     )
 end
 
-function astar_search(
-    G::Graph,
-    start::Int,
-    goal::Int,
-    ;
-    invalid::Function = (v_from::Int, v_to::Int) -> false,
-    h_func::Function = (v) -> 0,
-)::Union{Nothing,Path}
-
-    OPEN = PriorityQueue{AstarNode,Float64}()
-    CLOSE = fill(false, length(G))
-    S = AstarNode(v = start, g = 0, h = h_func(start))
-    enqueue!(OPEN, S, S.f)
-
-    while !isempty(OPEN)
-        # pop
-        S = dequeue!(OPEN)
-        CLOSE[S.v] && continue
-        CLOSE[S.v] = true
-
-        # check goal condition
-        if S.v == goal
-            # backtracking
-            path = []
-            while !isnothing(S.p)
-                pushfirst!(path, S.v)
-                S = S.p
-            end
-            pushfirst!(path, start)
-            return path
-        end
-
-        # expand
-        for u in get_neighbors(G, S.v)
-            # check closed list
-            CLOSE[u] && continue
-
-            # check invalid conditions
-            invalid(S.v, u) && continue
-
-            # add new search node
-            S_new = AstarNode(v = u, g = S.g + 1, h = h_func(u), p = S)
-            !haskey(OPEN, S_new) && enqueue!(OPEN, S_new, S_new.f)
-        end
-    end
-    return nothing
-end
-
 function create_fragment_tables(paths::Paths)
 
     N = length(paths)
