@@ -1,6 +1,7 @@
-@testset verbose = true "pathfinding" begin
+@testset verbose = true "single_agent_pathfinding" begin
     import MAPPFD: generate_sample_graph1
-    import MAPPFD.PathFinding: is_valid_path, timed_path_finding, basic_path_finding
+    import MAPPFD.SingleAgentPathfinding:
+        is_valid_path, timed_pathfinding, basic_pathfinding, get_distance_table
 
     G = generate_sample_graph1()
 
@@ -13,10 +14,10 @@
         @test !is_valid_path([1, 4, 3], G, start, goal)
     end
 
-    @testset "timed_path_finding" begin
+    @testset "timed_pathfinding" begin
         start = 1
         goal = 3
-        path = timed_path_finding(
+        path = timed_pathfinding(
             G = G,
             start = start,
             check_goal = (S) -> (S.v == goal),
@@ -26,10 +27,10 @@
         @test path == [1, 1, 2, 3]
     end
 
-    @testset "basic_path_finding" begin
+    @testset "basic_pathfinding" begin
         start = 4
         goal = 5
-        path = basic_path_finding(
+        path = basic_pathfinding(
             G = G,
             start = start,
             goal = goal,
@@ -40,7 +41,6 @@
     end
 
     @testset "distance table" begin
-        import MAPPFD.PathFinding: get_distance_table
         dist_table = get_distance_table(G, 3)
         @test dist_table[1] == 2
         @test dist_table[2] == 1

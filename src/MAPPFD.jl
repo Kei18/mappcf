@@ -11,8 +11,10 @@ import Base.Iterators: product
 include("utils.jl")
 include("graph.jl")
 include("instance.jl")
-include("pathfinding.jl")
-using .PathFinding
+include("single_agent_pathfinding.jl")
+using .SingleAgentPathfinding
+include("multi_agent_pathfinding.jl")
+using .MultiAgentPathfinding
 
 # include("libotimapp.jl")
 # include("libsolver.jl")
