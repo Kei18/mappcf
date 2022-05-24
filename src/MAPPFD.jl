@@ -6,6 +6,7 @@ import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 using Plots
 import ColorSchemes
+import Base.Iterators: product
 
 function get_in_range(A::Vector{T}, index::Int)::T where {T<:Any}
     index < 1 && return first(A)

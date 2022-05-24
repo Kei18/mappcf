@@ -16,7 +16,7 @@ function complete_algorithm(
     # planning failure
     isnothing(paths) && return nothing
     # identify critical sections
-    critical_sections = identify_critical_sections5(paths, crashes, time_offset)
+    critical_sections = identify_critical_sections5(paths, time_offset)
     # compute backup paths
     backups = Dict()
     for (crash, effect) in critical_sections
@@ -41,12 +41,8 @@ function complete_algorithm(
     return (paths = paths, time_offset = time_offset, backups = backups)
 end
 
-function identify_critical_sections5(
-    paths::Paths,
-    crashes::Crashes = Crashes(),
-    time_offset::Int = 1,
-)
 
+function identify_critical_sections5(paths::Paths, time_offset::Int = 1)
     critical_sections = []
     table = Dict()   # vertex => [ (who, when) ]
     for (i, path) in enumerate(paths)

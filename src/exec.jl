@@ -5,11 +5,11 @@
 end
 Crashes = Vector{Crash}
 Base.show(io::IO, c::Crash) = print(io, "Crash(when=$(c.when), who=$(c.who), loc=$(c.loc))")
-Base.show(io::IO, crashes::Crashes) = begin
-    print(io, "[\n")
-    foreach(c -> print(io, "\t$c\n"), crashes)
-    print(io, "]")
-end
+# Base.show(io::IO, crashes::Crashes) = begin
+#     print(io, "[")
+#     foreach(c -> print(io, "$c, "), crashes)
+#     print(io, "]")
+# end
 
 History = Vector{@NamedTuple {config::Config, crashes::Crashes}}
 
@@ -257,6 +257,20 @@ function synchronous_execute(
     VERBOSE > 0 && @warn(@sprintf("reaching max_makespan%d", max_makespan))
     return nothing
 end
+
+function sequential_execute(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution;
+    crashes = Crashes(),
+    failure_prob::Real = 0,
+    max_activation::Int = 10,
+    VERBOSE::Int = 0,
+)::Union{History,Nothing}
+    return nothing
+end
+
 
 function sync_verification(
     G::Graph,

@@ -2,3 +2,4 @@
 echo "code formatting by JuliaFormatter"
 julia --project=. -e 'using JuliaFormatter; format(".")'
 git add ./**/*.jl
+echo "formatting done"
