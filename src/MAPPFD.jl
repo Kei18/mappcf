@@ -19,10 +19,9 @@ include("otimapp.jl")
 using .OTIMAPP
 include("solver.jl")
 
-# include("libsolver_seq.jl")
 # include("exec.jl")
 # include("complete_algo.jl")
 include("examples.jl")
-# include("viz.jl")
+include("viz.jl")
 
 end # module

@@ -26,6 +26,8 @@ function astar_operator_decomposition(
             i = S_from.next
             v_i_from = S_to.Q[i]
             v_i_to = S_to.Q[i]
+            # avoid use of other goals
+            v_i_to != goals[i] && v_i_to in goals && return true
             # avoid collision
             return any(
                 j ->
@@ -46,7 +48,7 @@ function astar_operator_decomposition(
                     Q = map(k -> k == i ? v_to : S.Q[k], 1:N),
                     Q_prev = (j == 1) ? copy(S.Q) : copy(S.Q_prev),
                     next = j,
-                    g = v_to == goals[i] ? S.g : S.g + 1,  # minimize time not at goal
+                    g = (v_to == goals[i]) ? S.g : S.g + 1,  # minimize time not at goal
                     h = S.h - dist_tables[i][v_from] + dist_tables[i][v_to],
                     parent = S,
                     timestep = timestep,
@@ -63,6 +65,12 @@ function astar_operator_decomposition(
                 S = S.parent
             end
             foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+            # remove redundant vertex
+            for i = 1:N
+                while length(paths[i]) > 1 && paths[i][end] == paths[i][end-1]
+                    pop!(paths[i])
+                end
+            end
             return paths
         end
 
@@ -71,7 +79,7 @@ function astar_operator_decomposition(
         invalid = invalid,
         check_goal = (S) -> S.Q == goals && S.next == 1,
         get_node_neighbors = get_node_neighbors,
-        get_node_id = (S) -> "$(join(S.Q, '-'))_(S.next)",
+        get_node_id = (S) -> "$(join(S.Q, '-'))_$(S.next)",
         get_node_score = (S) -> S.f,
         backtrack = backtrack,
     )

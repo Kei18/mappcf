@@ -36,7 +36,7 @@ function prioritized_planning(
         path = timed_pathfinding(
             G = G,
             start = starts[i],
-            check_goal = gen_check_goal_pp(paths, i, goals[i]),
+            check_goal = (S) -> S.v == goals[i],
             invalid = invalid,
             h_func = h_func,
         )
