@@ -15,8 +15,9 @@ include("single_agent_pathfinding.jl")
 using .SingleAgentPathfinding
 include("multi_agent_pathfinding.jl")
 using .MultiAgentPathfinding
+include("otimapp.jl")
+using .OTIMAPP
 
-# include("libotimapp.jl")
 # include("libsolver.jl")
 # include("libsolver_seq.jl")
 # include("exec.jl")
