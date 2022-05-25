@@ -17,6 +17,11 @@ function prioritized_planning(
                 v_i_from = S_from.v
                 v_i_to = S_to.v
                 t = S_to.t
+
+                # avoid other goals
+                v_i_to != goals[i] && v_i_to in goals && return true
+
+                # collision
                 for j = 1:N
                     (j == i || isempty(paths[j])) && continue
                     v_j_from = get_in_range(paths[j], t - 1)

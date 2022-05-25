@@ -1,5 +1,7 @@
 module OTIMAPP
 
+export Fragment, FragmentTable, register!, potential_deadlock_exists
+
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 import MAPPFD:
