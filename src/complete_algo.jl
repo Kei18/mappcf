@@ -84,24 +84,15 @@ end
 function get_new_unresolved_events(paths::Paths, offset::Int = 1)::Vector{Event}
     U = Vector{Event}()
     table = Dict()   # vertex => [ (who, when) ]
-    for (i, path) in enumerate(paths)
-        for t_i = 1:length(path)
-            v = path[t_i]
-            # new critical section is found
-            for (j, t_j) in get!(table, v, [])
-                j == i && continue
-                e = get_sync_event(;
-                    v = v,
-                    i = i,
-                    j = j,
-                    t_i = t_i,
-                    t_j = t_j,
-                    offset = offset,
-                )
-                push!(U, e)
-            end
-            push!(table[v], (i, t_i))
+    for (i, path) in enumerate(paths), t_i = 1:length(path)
+        v = path[t_i]
+        # new critical section is found
+        for (j, t_j) in get!(table, v, [])
+            j == i && continue
+            e = get_sync_event(; v = v, i = i, j = j, t_i = t_i, t_j = t_j, offset = offset)
+            push!(U, e)
         end
+        push!(table[v], (i, t_i))
     end
     return U
 end
@@ -120,23 +111,17 @@ function astar_operator_decomposition(
     correct_agents, crashed_agents = get_correct_crashed_agents(N, crashes)
     correct_goals = map(i -> goals[i], correct_agents)
 
-    invalid =
-        (S_from::MAPF.AODNode, S_to::MAPF.AODNode) -> begin
-            MAPF.invalid_AOD(S_from, S_to) && return true
+    # check constraints
+    invalid = MAPF.gen_invalid_AOD(
+        goals;
+        correct_agents = correct_agents,
+        additional_constraints = (S_from::MAPF.AODNode, S_to::MAPF.AODNode) -> begin
             i = S_from.next
             v = S_to.Q[i]
             t = S_to.timestep
-
-            # check goals
-            i in correct_agents && v != goals[i] && v in correct_goals && return true
-
-            # check constraints
-            any(c -> c.who == i && c.loc == v && c.when - offset == t, constraints) &&
-                return true
-
-            # otherwise
-            return false
-        end
+            return any(c -> c.who == i && c.loc == v && c.when - offset == t, constraints)
+        end,
+    )
 
     return search(
         initial_node = MAPF.get_initial_AODNode(starts, dist_tables),

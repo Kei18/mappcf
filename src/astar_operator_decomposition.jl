@@ -16,21 +16,9 @@ function astar_operator_decomposition(
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
 )::Union{Nothing,Paths}
-
-    invalid = (S_from, S_to) -> begin
-        # avoid collisions
-        invalid_AOD(S_from, S_to) && return true
-        # avoid other goals
-        i = S_from.next
-        v = S_to.Q[i]
-        v != goals[i] && v in goals && return true
-
-        return false
-    end
-
     return search(
         initial_node = get_initial_AODNode(starts, dist_tables),
-        invalid = invalid,
+        invalid = gen_invalid_AOD(goals),
         check_goal = (S) -> S.Q == goals && S.next == 1,
         get_node_neighbors = gen_get_node_neighbors_AOD(G, goals, dist_tables),
         get_node_id = (S) -> string(S),
@@ -43,6 +31,40 @@ function get_initial_AODNode(starts::Config, dist_tables::Vector{Vector{Int}})::
     Q_init = copy(starts)
     h_init = sum(i -> dist_tables[i][Q_init[i]], 1:length(starts))
     return AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
+end
+
+function gen_invalid_AOD(
+    goals::Config;
+    correct_agents::Vector{Int} = collect(1:length(goals)),
+    additional_constraints::Union{Nothing,Function} = nothing,
+)::Function
+
+    N = length(goals)
+    correct_agents_goals = map(i -> goals[i], correct_agents)
+
+    return (S_from::AODNode, S_to::AODNode) -> begin
+        i = S_from.next
+        v_i_from = S_to.Q[i]
+        v_i_to = S_to.Q[i]
+
+        # check collision
+        any(
+            j ->
+                S_to.Q[j] == v_i_to ||
+                    (S_to.Q[j] == v_i_from && S_to.Q_prev[j] == v_i_to),
+            1:i-1,
+        ) && return true
+
+        # avoid others goals
+        v_i_to != goals[i] && v_i_to in correct_agents_goals && return true
+
+        # check additional constrains
+        !isnothing(additional_constraints) &&
+            additional_constraints(S_from, S_to) &&
+            return true
+
+        return false
+    end
 end
 
 function invalid_AOD(S_from::AODNode, S_to::AODNode)::Bool
