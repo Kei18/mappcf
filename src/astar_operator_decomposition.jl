@@ -9,6 +9,7 @@
     timestep::Int = 1
 end
 
+# pure implementation
 function astar_operator_decomposition(
     G::Graph,
     starts::Config,
@@ -17,25 +18,6 @@ function astar_operator_decomposition(
 )::Union{Nothing,Paths}
 
     N = length(starts)
-    Q_init = copy(starts)
-    h_init = sum(i -> dist_tables[i][Q_init[i]], 1:N)
-    initial_node = AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
-
-    invalid =
-        (S_from, S_to) -> begin
-            i = S_from.next
-            v_i_from = S_to.Q[i]
-            v_i_to = S_to.Q[i]
-            # avoid use of other goals
-            v_i_to != goals[i] && v_i_to in goals && return true
-            # avoid collision
-            return any(
-                j ->
-                    S_to.Q[j] == v_i_to ||
-                        (S_to.Q[j] == v_i_from && S_to.Q_prev[j] == v_i_to),
-                1:i-1,
-            )
-        end
 
     get_node_neighbors =
         (S) -> begin
@@ -57,30 +39,49 @@ function astar_operator_decomposition(
             )
         end
 
-    backtrack =
-        (S) -> begin
-            paths = map(j -> Vector{Int}(), 1:N)
-            while !isnothing(S.parent)
-                S.next == 1 && foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
-                S = S.parent
-            end
-            foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
-            # remove redundant vertex
-            for i = 1:N
-                while length(paths[i]) > 1 && paths[i][end] == paths[i][end-1]
-                    pop!(paths[i])
-                end
-            end
-            return paths
-        end
-
     return search(
-        initial_node = initial_node,
-        invalid = invalid,
+        initial_node = get_initial_AODNode(starts, dist_tables),
+        invalid = invalidAOD,
         check_goal = (S) -> S.Q == goals && S.next == 1,
         get_node_neighbors = get_node_neighbors,
-        get_node_id = (S) -> "$(join(S.Q, '-'))_$(S.next)",
+        get_node_id = (S) -> string(S),
         get_node_score = (S) -> S.f,
-        backtrack = backtrack,
+        backtrack = backtrackAOD,
     )
 end
+
+function get_initial_AODNode(starts::Config, dist_tables::Vector{Vector{Int}})::AODNode
+    Q_init = copy(starts)
+    h_init = sum(i -> dist_tables[i][Q_init[i]], 1:length(starts))
+    return AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
+end
+
+function invalidAOD(S_from::AODNode, S_to::AODNode)::Bool
+    i = S_from.next
+    v_i_from = S_to.Q[i]
+    v_i_to = S_to.Q[i]
+    # avoid collision
+    return any(
+        j -> S_to.Q[j] == v_i_to || (S_to.Q[j] == v_i_from && S_to.Q_prev[j] == v_i_to),
+        1:i-1,
+    )
+end
+
+function backtrackAOD(S::AODNode)::Paths
+    N = length(S.Q)
+    paths = map(j -> Path(), 1:N)
+    while !isnothing(S.parent)
+        S.next == 1 && foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+        S = S.parent
+    end
+    foreach(k -> pushfirst!(paths[k], S.Q[k]), 1:N)
+    # remove redundant vertex
+    for i = 1:N
+        while length(paths[i]) > 1 && paths[i][end] == paths[i][end-1]
+            pop!(paths[i])
+        end
+    end
+    return paths
+end
+
+Base.string(S::AODNode) = "$(join(S.Q, '-'))_$(S.next)"

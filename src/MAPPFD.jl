@@ -15,12 +15,13 @@ include("single_agent_pathfinding.jl")
 using .SingleAgentPathfinding
 include("multi_agent_pathfinding.jl")
 using .MultiAgentPathfinding
+const MAPF = MultiAgentPathfinding
 include("otimapp.jl")
 using .OTIMAPP
 include("solver.jl")
+include("complete_algo.jl")
 
 # include("exec.jl")
-# include("complete_algo.jl")
 include("examples.jl")
 include("viz.jl")
 

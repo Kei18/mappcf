@@ -18,7 +18,7 @@ end
 end
 
 @kwdef struct SyncEffect <: Effect
-    plan_id::Int
+    plan_id::Int = 1
     who::Int
     loc::Int
     when::Int = 1
@@ -53,7 +53,7 @@ Solution = Vector{Vector{Plan}}
 
 function planner1(
     ins::Instance,
-    multi_agent_path_planner::Function,  # (Instance) -> paths
+    multi_agent_path_planner::Function,  # (Instance) -> Paths
     ;
     VERBOSE::Int = 0,
 )::Union{Nothing,Solution}
@@ -249,6 +249,7 @@ function add_event!(
 
     i = plan_i.who
     j = plan_j.who
+    @assert(i != j, "add_event!")
     c_i = SeqCrash(who = i, loc = v)
     c_j = SeqCrash(who = j, loc = v)
     if t_i > 1 && !haskey(plan_i.backup, c_j)
@@ -329,6 +330,7 @@ function add_event!(
 
     i = plan_i.who
     j = plan_j.who
+    @assert(i != j, "add_event!")
     @assert(t_i != t_j, "collision occurs")
 
     if t_i < t_j

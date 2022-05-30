@@ -8,6 +8,7 @@ include("./test_single_agent_pathfinding.jl")
 include("./test_multi_agent_pathfinding.jl")
 include("./test_otimapp.jl")
 include("./test_solver.jl")
+include("./test_complete_algo.jl")
 
 # include("./test_viz.jl")
 # include("./test_libsolver.jl")

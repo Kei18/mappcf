@@ -10,7 +10,7 @@ function generate_sample_graph1()::Graph
 end
 
 function generate_sample_graph2()::Graph
-    G = generate_grid(5, 5; obstacle_locs = [21, 23, 24, 25, 18, 20, 8])
+    G = generate_grid(5, 5; obstacle_locs = [21, 23, 25, 18, 20, 8])
     remove_edges!(G, (2, 7), (4, 9), (9, 10))
     return G
 end
