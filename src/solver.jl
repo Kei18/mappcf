@@ -18,7 +18,7 @@ end
 end
 
 @kwdef struct SyncEffect <: Effect
-    plan_id::Int = 1
+    plan_id::Int
     who::Int
     loc::Int
     when::Int = 1
@@ -318,29 +318,51 @@ function find_backup_plan(
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
 end
 
+function get_sync_event(;
+    v::Int,
+    i::Int,
+    j::Int,
+    t_i::Int,
+    t_j::Int,
+    plan_i_id::Int = 1,
+    plan_j_id::Int = 1,
+    offset::Int = 1,
+)::Event
+
+    @assert(i != j, "add_event!")
+    @assert(t_i != t_j, "collision occurs")
+
+    if t_i < t_j
+        c_i = SyncCrash(who = i, loc = v, when = t_i + offset - 1)
+        e_j = SyncEffect(who = j, when = t_j + offset - 1, loc = v, plan_id = plan_j_id)
+        return Event(crash = c_i, effect = e_j)
+    else  # t_j < t_i
+        c_j = SyncCrash(who = j, loc = v, when = t_j + offset - 1)
+        e_i = SyncEffect(who = i, when = t_i + offset - 1, loc = v, plan_id = plan_i_id)
+        return Event(crash = c_j, effect = e_i)
+    end
+end
+
 function add_event!(
     U::Vector{Event},
     ins::SyncInstance;
     v::Int,
     plan_i::Plan,
     plan_j::Plan,
-    t_j::Int,
     t_i::Int,
+    t_j::Int,
 )::Nothing
-
-    i = plan_i.who
-    j = plan_j.who
-    @assert(i != j, "add_event!")
-    @assert(t_i != t_j, "collision occurs")
-
-    if t_i < t_j
-        c_i = SyncCrash(who = i, loc = v, when = t_i)
-        e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        push!(U, Event(crash = c_i, effect = e_j))
-    else  # t_j < t_i
-        c_j = SyncCrash(who = j, loc = v, when = t_j)
-        e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        push!(U, Event(crash = c_j, effect = e_i))
-    end
+    push!(
+        U,
+        get_sync_event(
+            v = v,
+            i = plan_i.who,
+            j = plan_j.who,
+            t_i = t_i,
+            t_j = t_j,
+            plan_i_id = plan_i.id,
+            plan_j_id = plan_j.id,
+        ),
+    )
     nothing
 end
