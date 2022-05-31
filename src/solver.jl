@@ -34,7 +34,7 @@ end
 
 Base.show(io::IO, c::SyncCrash) =
     print(io, "SyncCrash(who=$(c.who), loc=$(c.loc), when=$(c.when))")
-Base.show(io::IO, c::SeqCrash) = print(io, "SyncCrash(who=$(c.who), loc=$(c.loc))")
+Base.show(io::IO, c::SeqCrash) = print(io, "SeqCrash(who=$(c.who), loc=$(c.loc))")
 Base.show(io::IO, e::SyncEffect) = print(
     io,
     "SyncEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))",
@@ -91,7 +91,7 @@ end
 
 function get_correct_crashed_agents(
     N::Int,
-    crashes::Vector{Crash},
+    crashes::Vector{T} where {T<:Crash},
 )::@NamedTuple {correct_agents::Vector{Int}, crashed_agents::Vector{Int}}
     crashed_agents = map(c -> c.who, crashes)
     correct_agents = filter(i -> all(j -> j != i, crashed_agents), 1:N)
@@ -101,7 +101,7 @@ end
 function get_correct_crashed_agents(
     N::Int,
     i::Int,
-    crashes::Vector{Crash},
+    crashes::Vector{T} where {T<:Crash},
 )::@NamedTuple {correct_agents::Vector{Int}, crashed_agents::Vector{Int}}
     (correct_agents, crashed_agents) = get_correct_crashed_agents(N, crashes)
     filter!(j -> j != i, correct_agents)
