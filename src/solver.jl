@@ -1,5 +1,6 @@
 abstract type Crash end
 abstract type Effect end
+Crashes = Vector{Crash}
 
 @kwdef struct Event
     crash::Crash

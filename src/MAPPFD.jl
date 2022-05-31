@@ -20,8 +20,8 @@ include("otimapp.jl")
 using .OTIMAPP
 include("solver.jl")
 include("complete_algo.jl")
+include("exec.jl")
 
-# include("exec.jl")
 include("examples.jl")
 include("viz.jl")
 

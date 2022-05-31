@@ -1,6 +1,12 @@
 # global failure detector
-function planner2(ins::SyncInstance; VERBOSE::Int = 0)::Solution
-    return flatten_recursive_solution(planner2(ins.G, ins.starts, ins.goals))
+function planner2(
+    ins::SyncInstance,
+    multi_agent_path_planner::Function = astar_operator_decomposition;
+    VERBOSE::Int = 0,
+)::Solution
+    return flatten_recursive_solution(
+        planner2(ins.G, ins.starts, ins.goals, multi_agent_path_planner),
+    )
 end
 
 @kwdef mutable struct RecursiveSolution
@@ -13,6 +19,7 @@ function planner2(
     G::Graph,
     starts::Config,
     goals::Config,
+    multi_agent_path_planner::Function,
     crashes::Vector{Crash} = Vector{Crash}(),
     offset::Int = 1,
     parent_constrations::Vector{Effect} = Vector{Effect}(),
@@ -20,7 +27,7 @@ function planner2(
     constraints = copy(parent_constrations)
     @label START_PLANNING
     # compute collision-free paths
-    paths = astar_operator_decomposition(G, starts, goals, crashes, constraints, offset)
+    paths = multi_agent_path_planner(G, starts, goals, crashes, constraints, offset)
     isnothing(paths) && return nothing
 
     # identify critical sections
@@ -33,6 +40,7 @@ function planner2(
             G,
             map(path -> get_in_range(path, event.crash.when - offset + 1), paths),
             goals,
+            multi_agent_path_planner,
             vcat(crashes, event.crash),
             event.crash.when,
             constraints,
@@ -95,46 +103,4 @@ function get_new_unresolved_events(paths::Paths, offset::Int = 1)::Vector{Event}
         push!(table[v], (i, t_i))
     end
     return U
-end
-
-function astar_operator_decomposition(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    crashes::Vector{Crash},
-    constraints::Vector{Effect},
-    offset::Int;
-    dist_tables::Vector{Vector{Int}} = MAPF.get_distance_tables(G, goals),
-)::Union{Nothing,Paths}
-
-    N = length(starts)
-    correct_agents, crashed_agents = get_correct_crashed_agents(N, crashes)
-    correct_goals = map(i -> goals[i], correct_agents)
-
-    # check constraints
-    invalid = MAPF.gen_invalid_AOD(
-        goals;
-        correct_agents = correct_agents,
-        additional_constraints = (S_from::MAPF.AODNode, S_to::MAPF.AODNode) -> begin
-            i = S_from.next
-            v = S_to.Q[i]
-            t = S_to.timestep
-            return any(c -> c.who == i && c.loc == v && c.when - offset == t, constraints)
-        end,
-    )
-
-    return search(
-        initial_node = MAPF.get_initial_AODNode(starts, dist_tables),
-        invalid = invalid,
-        check_goal = (S) -> all(i -> S.Q[i] == goals[i], correct_agents) && S.next == 1,
-        get_node_neighbors = MAPF.gen_get_node_neighbors_AOD(
-            G,
-            goals,
-            dist_tables,
-            crashed_agents,
-        ),
-        get_node_id = (S) -> string(S),
-        get_node_score = (S) -> S.f,
-        backtrack = MAPF.backtrack_AOD,
-    )
 end
