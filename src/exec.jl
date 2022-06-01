@@ -29,6 +29,44 @@ function is_colliding(C1::Config, C2::Config)::Bool
     return false
 end
 
+function is_valid_move(G::Graph, v_from::Int, v_to::Int)::Bool
+    return v_to == v_from || v_to in get_neighbors(G, v_from)
+end
+
+function check_colliding(C1::Config, C2::Config)::Nothing
+    @assert(!is_colliding(C1, C2), "collisions occur")
+end
+
+function check_valid_move(G::Graph, v_from::Int, v_to::Int)::Nothing
+    @assert(is_valid_move(G, v_from, v_to), "invalid move: from $(v_now) -> $(v_next)")
+end
+
+function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
+    N = length(C_from)
+    for i = 1:N
+        v_i_from = C_from[i]
+        v_i_to = C_to[i]
+        # move
+        @assert(
+            v_i_to == v_i_from || v_i_to in get_neighbors(G, v_i_from),
+            "invalid move for agent-$i: from $(v_i_from) -> $(v_i_to)"
+        )
+        for j = i+1:N
+            v_j_from = C_from[j]
+            v_j_to = C_to[j]
+            # check collisions
+            @assert(
+                v_j_from != v_i_from,
+                "vertex collision between agent-$i and agent-$j at vertex-$(v_i_from)"
+            )
+            @assert(
+                v_j_from != v_i_to || v_j_to != v_i_from,
+                "edge collision between agent-$i and agent-$j at vertex [$v_i_from, $v_i_to]"
+            )
+        end
+    end
+end
+
 function emulate_crashes!(
     config::Config,
     crashes::Vector{SyncCrash},
@@ -53,7 +91,7 @@ function execute(
     state_change!::Function,
     pre_determined_crashes::Vector{T} where {T<:Crash},
     ;
-    max_makespan::Int = 30,
+    max_activation::Int = 30,
     failure_prob::Real = 0,
     VERBOSE::Int = 0,
 )::Union{History,Nothing}
@@ -66,29 +104,23 @@ function execute(
     hist = History()
 
     # initial step
-    emulate_crashes!(config, crashes, 1, failure_prob = failure_prob, VERBOSE = VERBOSE)
+    emulate_crashes!(config, crashes, 1; failure_prob = failure_prob, VERBOSE = VERBOSE)
     push!(hist, (config = copy(config), crashes = copy(crashes)))
 
-    for t = 1:max_makespan
+    for t = 1:max_activation
 
         # state change
-        res = state_change!(plan_id_list, solution, crashes, t)
-        if !isnothing(res)
-            VERBOSE > 0 && @info(res)
-            return nothing
-        end
+        state_change!(plan_id_list, solution, crashes, t)
 
         # update config
         for i = 1:N
             is_crashed(crashes, i, t) && continue
             v_now = config[i]
             v_next = get_in_range(solution[i][plan_id_list[i]].path, t + 1)
-            @assert(
-                v_next == v_now || v_next in get_neighbors(ins.G, v_now),
-                "invalid move: agent-$i at timestep-$(t) from $(v_now) -> $(v_next)"
-            )
             config[i] = v_next
         end
+
+        # update crash
         emulate_crashes!(
             config,
             crashes,
@@ -96,13 +128,12 @@ function execute(
             failure_prob = failure_prob,
             VERBOSE = VERBOSE,
         )
+
+        # update history
         push!(hist, (config = copy(config), crashes = copy(crashes)))
 
-        # check collisions
-        @assert(
-            !is_colliding(hist[end-1].config, hist[end].config),
-            "collisions occur, something wrong"
-        )
+        # verification
+        check_valid_transition(ins.G, hist[end-1].config, hist[end].config)
 
         # check termination
         if is_finished(config, crashes, ins.goals, t)
@@ -111,7 +142,7 @@ function execute(
         end
     end
 
-    VERBOSE > 0 && @warn("reaching max_makespan:$max_makespan")
+    VERBOSE > 0 && @warn("reaching max_activation:$max_activation")
     return nothing
 end
 
@@ -142,27 +173,22 @@ function execute_with_local_FD(
                     plan = solution[i][plan_id_list[i]]
                     v_next = get_in_range(plan.path, t + 1)
 
-                    # no crash at next position?
-                    crash_index =
-                        findfirst(c -> c.loc == v_next && c.when <= t, crashes)
-                    isnothing(crash_index) && break
-                    crash = crashes[crash_index]
+                    # crash exists at next position?
+                    crash =
+                        find_first_element(c -> c.loc == v_next && c.when <= t, crashes)
+                    isnothing(crash) && break
 
                     # find backup path
-                    backup_keys = collect(keys(plan.backup))
-                    backup_index = findfirst(
+                    backup_key = find_first_element(
                         c -> c.when < t + 1 && c.loc == v_next && c.who == crash.who,
-                        backup_keys,
+                        collect(keys(plan.backup)),
                     )
-                    isnothing(backup_index) && return "no backup path"
-
-                    next_plan_id = plan.backup[backup_keys[backup_index]]
-                    # check eternal loop
-                    plan_id_list[i] == next_plan_id && return "invalid transition"
+                    @assert(!isnothing(backup_key), "no backup path")
+                    next_plan_id = plan.backup[backup_key]
+                    @assert(plan_id_list[i] != next_plan_id, "invalid transition")
                     plan_id_list[i] = next_plan_id
                 end
             end
-            nothing
         end
 
     return execute(ins, solution, state_change!, crashes; kwargs...)
@@ -196,11 +222,10 @@ function execute_with_global_FD(
 
                     # update plan id
                     next_plan_id = plan.backup[crash]
-                    plan_id_list[i] == next_plan_id && return "invalid transition"
+                    @assert(plan_id_list[i] != next_plan_id, "invalid transition")
                     plan_id_list[i] = next_plan_id
                 end
             end
-            nothing
         end
 
     return execute(ins, solution, state_change!, crashes; kwargs...)
@@ -245,9 +270,11 @@ function execute_with_local_FD(
         )
 
         isempty(alive_agents) && return nothing
+
         # pickup one agent
         i = rand(alive_agents)
 
+        # activate, state transition
         while true
             # retrieve current plan
             plan = solution[i][plan_id_list[i]]
@@ -256,13 +283,9 @@ function execute_with_local_FD(
             v_next = plan.path[t+1]
 
             # state change
-            crash_index = findfirst(c -> c.loc == v_next, crashes)
-            isnothing(crash_index) && break
-            crash = crashes[crash_index]
-            if !haskey(plan.backup, crash)
-                @warn("no backup plan")
-                return nothing
-            end
+            crash = find_first_element(c -> c.loc == v_next, crashes)
+            isnothing(crash) && break
+            @assert(haskey(plan.backup, crash), "no backup plan")
             next_plan_id = plan.backup[crash]
             @assert(plan_id_list[i] != next_plan_id, "invalid transition")
             plan_id_list[i] = next_plan_id
@@ -270,25 +293,19 @@ function execute_with_local_FD(
 
         # update config
         progress_indexes[i] += 1
-        v_now = config[i]
         v_next = solution[i][plan_id_list[i]].path[progress_indexes[i]]
-        @assert(
-            v_next == v_now || v_next in get_neighbors(ins.G, v_now),
-            "invalid move: agent-$i at timestep-$(t) from $(v_now) -> $(v_next)"
-        )
         config[i] = v_next
 
         # update crash
-        crash_index = findfirst(c -> c.who == i && c.loc == v_next, pre_determined_crashes)
-        !isnothing(crash_index) && push!(crashes, pre_determined_crashes[crash_index])
+        new_crash =
+            find_first_element(c -> c.who == i && c.loc == v_next, pre_determined_crashes)
+        !isnothing(new_crash) && push!(crashes, new_crash)
 
+        # update history
         push!(hist, (config = copy(config), crashes = copy(crashes)))
 
-        # check collisions
-        @assert(
-            !is_colliding(hist[end-1].config, hist[end].config),
-            "collisions occur, something wrong"
-        )
+        # verification
+        check_valid_transition(ins.G, hist[end-1].config, hist[end].config)
 
         # check termination
         if is_finished(config, crashes, ins.goals)
@@ -306,18 +323,24 @@ function approx_verification(
     solution::Solution;
     num_repetition::Int = 20,
     failure_prob::Real = 0.1,
-    max_makespan::Int = 30,
+    max_activation::Int = 30,
 )::Bool
-    return isnothing(solution) || all(
-        k ->
-            !isnothing(
-                execute_with_local_FD(
-                    ins,
-                    solution;
-                    failure_prob = failure_prob,
-                    max_makespan = max_makespan,
-                ),
-            ),
-        1:num_repetition,
-    )
+
+    isnothing(solution) && return true
+
+    try
+        for _ = 1:num_repetition
+            res = execute_with_local_FD(
+                ins,
+                solution;
+                failure_prob = failure_prob,
+                max_activation = max_activation,
+            )
+            isnothing(res) && return false
+        end
+        return true
+    catch e
+        @warn(e)
+        return false
+    end
 end

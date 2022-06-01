@@ -11,6 +11,11 @@ function get_in_range(A::Vector{T}, index::Int)::T where {T<:Any}
     return (index > length(A)) ? last(A) : A[index]
 end
 
+function find_first_element(fn::Function, A::Vector{T})::Union{Nothing,T} where {T<:Any}
+    index = findfirst(fn, A)
+    return isnothing(index) ? nothing : A[index]
+end
+
 abstract type SearchNode end
 
 function search(;

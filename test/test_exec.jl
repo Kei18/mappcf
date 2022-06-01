@@ -61,8 +61,12 @@
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
             [Plan(who = 1, path = [4, 1, 5], backup = Dict(), offset = 1)],
         ])
-        hist = MAPPFD.execute_with_local_FD(ins, solution, crashes)
-        @test isnothing(hist)
+        try
+            MAPPFD.execute_with_local_FD(ins, solution, crashes)
+            @test false
+        catch e
+            @test true
+        end
     end
 
     @testset "approx_verification" begin
@@ -208,21 +212,4 @@
         @test map(e -> e.config[1], hist) == [4, 5, 5, 5]
         @test map(e -> e.config[2], hist) == [8, 8, 6, 2]
     end
-
-    # @testset "sync_global_verification" begin
-    #     solution = (
-    #         paths = [[1, 2, 3], [4, 1, 5]],
-    #         time_offset = 1,
-    #         backups = Dict(
-    #             Crash(who = 1, when = 1, loc = 1) =>
-    #                 (paths = [[1], [4, 2, 5]], time_offset = 1, backups = ()),
-    #         ),
-    #     )
-    #     seed!(1)
-    #     @test sync_global_verification(ins..., solution; failure_prob = 0.5)
-
-    #     solution = (paths = [[1, 2, 3], [4, 1, 5]], time_offset = 1, backups = Dict())
-    #     seed!(1)
-    #     @test !sync_global_verification(ins..., solution; failure_prob = 0.5)
-    # end
 end
