@@ -12,26 +12,6 @@ function is_finished(
     return all(i -> is_crashed(crashes, i) || config[i] == goals[i], 1:length(config))
 end
 
-function is_colliding(C1::Config, C2::Config)::Bool
-    N = length(C1)
-    for i = 1:N, j = i+1:N
-        (C2[i] == C2[j] || (C1[i] == C2[j] && C2[i] == C1[j])) && return true
-    end
-    return false
-end
-
-function is_valid_move(G::Graph, v_from::Int, v_to::Int)::Bool
-    return v_to == v_from || v_to in get_neighbors(G, v_from)
-end
-
-function check_colliding(C1::Config, C2::Config)::Nothing
-    @assert(!is_colliding(C1, C2), "collisions occur")
-end
-
-function check_valid_move(G::Graph, v_from::Int, v_to::Int)::Nothing
-    @assert(is_valid_move(G, v_from, v_to), "invalid move: from $(v_now) -> $(v_next)")
-end
-
 function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
     N = length(C_from)
     for i = 1:N
@@ -83,7 +63,6 @@ function execute(
     update_crashes!::Function,
     ;
     max_activation::Int = 30,
-    failure_prob::Real = 0,
     VERBOSE::Int = 0,
 )::Union{History,Nothing} where {Ins<:Instance}
 
@@ -121,9 +100,11 @@ end
 
 function execute_with_local_FD(
     ins::SyncInstance,
-    solution::Union{Nothing,Solution},
-    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}();
-    kwargs...,
+    solution::Union{Nothing,Solution};
+    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
+    failure_prob::Real = 0,
+    max_activation::Int = 30,
+    VERBOSE::Int = 0,
 )::Union{History,Nothing}
 
     N = length(ins.goals)
@@ -167,39 +148,61 @@ function execute_with_local_FD(
                 end
             end
 
-            # update configuration
-            for i = 1:N
+            for (i, id) in enumerate(plan_id_list)
                 is_crashed(crashes, i) && continue
-                config[i] = get_in_range(
-                    solution[i][plan_id_list[i]].path,
-                    current_timestep + 1,
-                )
+                config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
             end
         end
 
     update_crashes! =
         (crashes::Vector{SyncCrash}, config::Config) -> begin
-            foreach(c -> c.when == current_timestep + 1 && push!(crashes, c), scheduled_crashes)
+            for c in scheduled_crashes
+                c.when != current_timestep + 1 && continue
+                crashes in scheduled_crashes && continue
+                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                    continue
+                push!(crashes, c)
+            end
+
+            for i in filter(i -> !is_crashed(crashes, i), 1:N)
+                rand() > failure_prob && continue
+                VERBOSE > 0 &&
+                    @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
+                push!(
+                    crashes,
+                    SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
+                )
+            end
         end
 
-    return execute(ins, solution, update_config!, update_crashes!; kwargs...)
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        update_crashes!;
+        max_activation = max_activation,
+    )
 end
 
 
 function execute_with_global_FD(
     ins::SyncInstance,
-    solution::Union{Nothing,Solution},
-    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}();
-    kwargs...,
+    solution::Union{Nothing,Solution};
+    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
+    failure_prob::Real = 0,
+    max_activation::Int = 30,
+    VERBOSE::Int = 0,
 )::Union{History,Nothing}
 
     N = length(ins.goals)
+
+    # will be updated via functions
     plan_id_list = fill(1, N)
     current_timestep = 0
 
     update_config! =
         (config::Config, crashes::Vector{SyncCrash}) -> begin
-            current_timestep += 1
+            current_timestep += 1  # update time
             for crash in filter(c -> c.when == current_timestep, crashes)
                 for i = 1:N
                     # skip crashed agents
@@ -217,29 +220,49 @@ function execute_with_global_FD(
             end
 
             # update configuration
-            for i = 1:N
+            for (i, id) in enumerate(plan_id_list)
                 is_crashed(crashes, i) && continue
-                config[i] = get_in_range(
-                    solution[i][plan_id_list[i]].path,
-                    current_timestep + 1,
-                )
+                config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
             end
         end
 
     update_crashes! =
         (crashes::Vector{SyncCrash}, config::Config) -> begin
-            foreach(c -> c.when == current_timestep + 1 && push!(crashes, c), scheduled_crashes)
+            for c in scheduled_crashes
+                c.when != current_timestep + 1 && continue
+                crashes in scheduled_crashes && continue
+                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                    continue
+                push!(crashes, c)
+            end
+
+            for i in filter(i -> !is_crashed(crashes, i), 1:N)
+                rand() > failure_prob && continue
+                VERBOSE > 0 &&
+                    @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
+                push!(
+                    crashes,
+                    SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
+                )
+            end
         end
 
-    return execute(ins, solution, update_config!, update_crashes!; kwargs...)
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        update_crashes!;
+        max_activation = max_activation,
+    )
 end
 
 function execute_with_local_FD(
     ins::SeqInstance,
     solution::Union{Nothing,Solution},
-    scheduled_crashes::Vector{SeqCrash} = Vector{SeqCrash}(),
     ;
+    scheduled_crashes::Vector{SeqCrash} = Vector{SeqCrash}(),
     max_activation::Int = 30,
+    failure_prob::Real = 0,
     VERBOSE::Int = 0,
 )::Union{History,Nothing}
 
@@ -290,7 +313,7 @@ function execute_with_local_FD(
                 plan_id_list[i] = next_plan_id
             end
 
-            # update config
+            # update configuration
             progress_indexes[i] += 1
             v_next = solution[i][plan_id_list[i]].path[progress_indexes[i]]
             config[i] = v_next
@@ -299,7 +322,18 @@ function execute_with_local_FD(
     update_crashes! =
         (crashes::Vector{SeqCrash}, config::Config) -> begin
             for c in scheduled_crashes
-                config[c.who] == c.loc && !(c in crashes) && push!(crashes, c)
+                config[c.who] != c.loc && continue
+                c in crashes && continue
+                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                    continue
+                push!(crashes, c)
+            end
+
+            for i = 1:N
+                is_crashed(crashes, i) && continue
+                failure_prob > 0 && rand() > failure_prob && continue
+                VERBOSE > 0 && @info("agent-$i is crashed at vertex-$(config[i])")
+                push!(crashes, SeqCrash(who = i, loc = config[i]))
             end
         end
 
