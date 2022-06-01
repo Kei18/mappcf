@@ -38,22 +38,33 @@ function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
     end
 end
 
-function emulate_crashes!(
-    config::Config,
-    crashes::Vector{SyncCrash},
-    timestep::Int;
-    failure_prob::Real = 0.2,
-    VERBOSE::Int = 0,
-)::Nothing
-    failure_prob == 0 && return
-    N = length(config)
-    for i = 1:N
-        is_crashed(crashes, i, timestep) && continue
-        if rand() < failure_prob
-            VERBOSE > 0 && @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
-            push!(crashes, SyncCrash(who = i, when = timestep, loc = config[i]))
-        end
-    end
+# I know that macro is not so beautiful...
+macro update_crashes_sync_model!()
+    return esc(
+        quote
+            (crashes::Vector{SyncCrash}, config::Config) -> begin
+                for c in scheduled_crashes
+                    c.when != current_timestep + 1 && continue
+                    crashes in scheduled_crashes && continue
+                    isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                        continue
+                    push!(crashes, c)
+                end
+
+                failure_prob == 0 && return
+                for i = 1:N
+                    is_crashed(crashes, i) && continue
+                    rand() > failure_prob && continue
+                    VERBOSE > 0 &&
+                        @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
+                    push!(
+                        crashes,
+                        SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
+                    )
+                end
+            end
+        end,
+    )
 end
 
 function execute(
@@ -89,12 +100,12 @@ function execute(
 
         # check termination
         if is_finished(config, crashes, ins.goals)
-            VERBOSE > 0 && @info("finish execution")
+            VERBOSE > 0 && @info("finish execution at $(t)-th activation's")
             return hist
         end
     end
 
-    VERBOSE > 0 && @warn("reaching max_activation:$max_activation")
+    VERBOSE > 0 && @warn("reaching at max_activation:$max_activation")
     return nothing
 end
 
@@ -147,31 +158,9 @@ function execute_with_local_FD(
                     plan_id_list[i] = next_plan_id
                 end
             end
-
             for (i, id) in enumerate(plan_id_list)
                 is_crashed(crashes, i) && continue
                 config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
-            end
-        end
-
-    update_crashes! =
-        (crashes::Vector{SyncCrash}, config::Config) -> begin
-            for c in scheduled_crashes
-                c.when != current_timestep + 1 && continue
-                crashes in scheduled_crashes && continue
-                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
-                    continue
-                push!(crashes, c)
-            end
-
-            for i in filter(i -> !is_crashed(crashes, i), 1:N)
-                rand() > failure_prob && continue
-                VERBOSE > 0 &&
-                    @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
-                push!(
-                    crashes,
-                    SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
-                )
             end
         end
 
@@ -179,11 +168,10 @@ function execute_with_local_FD(
         ins,
         solution,
         update_config!,
-        update_crashes!;
+        @update_crashes_sync_model!();
         max_activation = max_activation,
     )
 end
-
 
 function execute_with_global_FD(
     ins::SyncInstance,
@@ -218,32 +206,9 @@ function execute_with_global_FD(
                     plan_id_list[i] = next_plan_id
                 end
             end
-
-            # update configuration
             for (i, id) in enumerate(plan_id_list)
                 is_crashed(crashes, i) && continue
                 config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
-            end
-        end
-
-    update_crashes! =
-        (crashes::Vector{SyncCrash}, config::Config) -> begin
-            for c in scheduled_crashes
-                c.when != current_timestep + 1 && continue
-                crashes in scheduled_crashes && continue
-                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
-                    continue
-                push!(crashes, c)
-            end
-
-            for i in filter(i -> !is_crashed(crashes, i), 1:N)
-                rand() > failure_prob && continue
-                VERBOSE > 0 &&
-                    @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
-                push!(
-                    crashes,
-                    SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
-                )
             end
         end
 
@@ -251,7 +216,7 @@ function execute_with_global_FD(
         ins,
         solution,
         update_config!,
-        update_crashes!;
+        @update_crashes_sync_model!();
         max_activation = max_activation,
     )
 end
@@ -329,15 +294,22 @@ function execute_with_local_FD(
                 push!(crashes, c)
             end
 
+            failure_prob == 0 && return
             for i = 1:N
                 is_crashed(crashes, i) && continue
-                failure_prob > 0 && rand() > failure_prob && continue
+                rand() > failure_prob && continue
                 VERBOSE > 0 && @info("agent-$i is crashed at vertex-$(config[i])")
                 push!(crashes, SeqCrash(who = i, loc = config[i]))
             end
         end
 
-    return execute(ins, solution, update_config!, update_crashes!)
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        update_crashes!;
+        max_activation = max_activation,
+    )
 end
 
 function approx_verification(
