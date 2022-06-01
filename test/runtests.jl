@@ -1,6 +1,9 @@
 using Test
 using MAPPFD
 
+const DIRNAME = "./local"
+isdir(DIRNAME) && rm(DIRNAME, recursive = true)
+
 include("./test_utils.jl")
 include("./test_graph.jl")
 include("./test_instance.jl")
@@ -10,7 +13,6 @@ include("./test_otimapp.jl")
 include("./test_solver.jl")
 include("./test_complete_algo.jl")
 include("./test_exec.jl")
+include("./test_viz.jl")
 
-# include("./test_viz.jl")
-# include("./test_libsolver.jl")
 # include("./test_scripts.jl")

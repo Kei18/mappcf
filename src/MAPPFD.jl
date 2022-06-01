@@ -21,8 +21,8 @@ using .OTIMAPP
 include("solver.jl")
 include("complete_algo.jl")
 include("exec.jl")
+include("viz.jl")
 
 include("examples.jl")
-include("viz.jl")
 
 end # module
