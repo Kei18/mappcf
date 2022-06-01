@@ -312,8 +312,9 @@ function execute_with_local_FD(
     )
 end
 
-function approx_verification(
-    ins::SyncInstance,
+function approx_verify(
+    exec::Function,
+    ins::Instance,
     solution::Solution;
     num_repetition::Int = 20,
     failure_prob::Real = 0.1,
@@ -324,7 +325,7 @@ function approx_verification(
 
     try
         for _ = 1:num_repetition
-            res = execute_with_local_FD(
+            res = exec(
                 ins,
                 solution;
                 failure_prob = failure_prob,
@@ -337,4 +338,12 @@ function approx_verification(
         @warn(e)
         return false
     end
+end
+
+function approx_verify_with_local_FD(args...; kwargs...)::Bool
+    approx_verify(execute_with_local_FD, args...; kwargs...)
+end
+
+function approx_verify_with_global_FD(args...; kwargs...)::Bool
+    approx_verify(execute_with_global_FD, args...; kwargs...)
 end

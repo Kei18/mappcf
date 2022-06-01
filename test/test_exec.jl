@@ -5,7 +5,8 @@
         is_finished,
         SyncCrash,
         Plan,
-        approx_verification,
+        approx_verify_with_local_FD,
+        approx_verify_with_global_FD,
         SyncInstance,
         Solution,
         SeqCrash
@@ -22,11 +23,8 @@
         @test is_finished([1, 5], [SyncCrash(when = 1, who = 1, loc = 1)], goals)
     end
 
-    @testset "sync, execute_with_local_FD" begin
-        G = MAPPFD.generate_sample_graph1()
-        starts = [1, 4]
-        goals = [3, 5]
-        ins = SyncInstance(G, starts, goals)
+    @testset "sync / local FD" begin
+        ins = SyncInstance(MAPPFD.generate_sample_graph1(), [1, 4], [3, 5])
         crashes = [SyncCrash(when = 1, who = 1, loc = 1)]
         solution = Solution([
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
@@ -49,6 +47,9 @@
         @test map(e -> e.config[1], hist) == [1, 1, 1]
         @test map(e -> e.config[2], hist) == [4, 2, 5]
 
+        seed!(1)
+        @test approx_verify_with_local_FD(ins, solution; failure_prob = 0.5)
+
         # invalid
         solution = MAPPFD.Solution([
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
@@ -60,9 +61,12 @@
         catch e
             @test true
         end
+
+        seed!(1)
+        @test !approx_verify_with_local_FD(ins, solution; failure_prob = 0.5)
     end
 
-    @testset "sync, execute_with_global_FD" begin
+    @testset "sync / global FD" begin
         ins = SyncInstance(MAPPFD.generate_sample_graph2(), [11, 22, 19], [15, 7, 9])
 
         solution = MAPPFD.Solution([
@@ -141,33 +145,12 @@
         @test map(e -> e.config[1], hist) == [11, 12, 12, 12, 12, 12]
         @test map(e -> e.config[2], hist) == [22, 17, 16, 11, 6, 7]
         @test map(e -> e.config[3], hist) == [19, 14, 9, 9, 9, 9]
-    end
 
-    @testset "approx_verification" begin
-        ins = SyncInstance(MAPPFD.generate_sample_graph1(), [1, 4], [3, 5])
-        solution = MAPPFD.Solution([
-            [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
-            [
-                Plan(
-                    who = 2,
-                    path = [4, 1, 5],
-                    backup = Dict(SyncCrash(when = 1, who = 1, loc = 1) => 2),
-                    offset = 1,
-                ),
-                Plan(who = 2, path = [4, 2, 5], backup = Dict(), offset = 1),
-            ],
-        ])
-        @test approx_verification(ins, solution; failure_prob = 0.5)
-
-        solution = MAPPFD.Solution([
-            [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
-            [Plan(who = 2, path = [4, 1, 5], backup = Dict(), offset = 1)],
-        ])
         seed!(1)
-        @test !approx_verification(ins, solution; failure_prob = 0.5)
+        @test approx_verify_with_global_FD(ins, solution)
     end
 
-    @testset "seq_local_failure_detector" begin
+    @testset "seq / local FD" begin
         ins = MAPPFD.SeqInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
         solution = Solution([
             [
@@ -207,5 +190,7 @@
         @test !isnothing(hist)
         @test map(e -> e.config[1], hist) == [4, 5, 5, 5]
         @test map(e -> e.config[2], hist) == [8, 8, 6, 2]
+
+        @test approx_verify_with_local_FD(ins, solution)
     end
 end
