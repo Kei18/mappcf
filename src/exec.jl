@@ -74,7 +74,7 @@ function execute(
 
         # check termination
         if is_finished(config, crashes, ins.goals)
-            VERBOSE > 0 && @info("finish execution at $(t)-th activation's")
+            VERBOSE > 1 && @info("finish execution at $(t)-th activation's")
             return hist
         end
     end
@@ -144,6 +144,7 @@ function execute_with_local_FD(
         update_config!,
         @update_crashes_sync_model!();
         max_activation = max_activation,
+        VERBOSE = VERBOSE,
     )
 end
 
@@ -192,6 +193,7 @@ function execute_with_global_FD(
         update_config!,
         @update_crashes_sync_model!();
         max_activation = max_activation,
+        VERBOSE = VERBOSE,
     )
 end
 
@@ -283,6 +285,7 @@ function execute_with_local_FD(
         update_config!,
         update_crashes!;
         max_activation = max_activation,
+        VERBOSE = VERBOSE,
     )
 end
 
@@ -291,20 +294,14 @@ function approx_verify(
     ins::Instance,
     solution::Solution;
     num_repetition::Int = 20,
-    failure_prob::Real = 0.1,
-    max_activation::Int = 30,
+    kwargs...,
 )::Bool
 
     isnothing(solution) && return true
 
     try
         for _ = 1:num_repetition
-            res = exec(
-                ins,
-                solution;
-                failure_prob = failure_prob,
-                max_activation = max_activation,
-            )
+            res = exec(ins, solution; kwargs...)
             isnothing(res) && return false
         end
         return true

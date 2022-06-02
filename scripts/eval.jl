@@ -1,5 +1,6 @@
 import CSV
 import Random: seed!
+import Printf: @printf
 using MAPPFD
 import Base.Threads
 include("./utils.jl")
@@ -19,36 +20,41 @@ function main(config_file::String)
     num_total_tasks = length(instances) * num_solvers
     verify = parse_fn(config["verification"])
 
+    @info("start solving with $(Threads.nthreads()) threads")
+
     # cnt_fin = 0
-    result = []
-    for (k, ins) in enumerate(instances)
-        for (l, solver_info) in enumerate(get(config, "solvers", []))
-            solver_name = solver_info["_target_"]
-            planner = parse_fn(solver_info)
-            t_planning = @elapsed begin
-                solution = planner(ins)
-            end
-            if !verify(ins, solution)
-                @warn("found infeasible solution: ins-$k, solver-$l")
-                return :error
-            end
-            push!(
-                result,
-                (
-                    instance = k,
-                    N = length(ins.starts),
-                    solver = solver_name,
-                    solver_index = l,
-                    solved = !isnothing(solution),
-                    comp_time = t_planning,
-                ),
-            )
-            if get(config, "save_plot", false)
-                plot_solution(ins, solution; show_vertex_id = true, show_agent_id = true)
-                safe_savefig!("$(root_dir)/solution_$(solver_name)-$(l)_$(k).pdf")
-            end
+    result = Array{Any}(undef, num_total_tasks)
+    cnt_fin = Threads.Atomic{Int}(0)
+    loops = collect(
+        enumerate(
+            Iterators.product(enumerate(instances), enumerate(get(config, "solvers", []))),
+        ),
+    )
+    Threads.@threads for (m, ((k, ins), (l, solver_info))) in loops
+        solver_name = solver_info["_target_"]
+        planner = parse_fn(solver_info)
+        t_planning = @elapsed begin
+            solution = planner(ins)
         end
+        verification = verify(ins, solution)
+        !verification && @error("found infeasible solution: ins-$k, solver-$l")
+        result[m] = (
+            instance = k,
+            N = length(ins.starts),
+            solver = solver_name,
+            solver_index = l,
+            solved = !isnothing(solution),
+            verfification = verification,
+            comp_time = t_planning,
+        )
+        if Threads.nthreads() == 1 && get(config, "save_plot", false)
+            plot_solution(ins, solution; show_vertex_id = true, show_agent_id = true)
+            safe_savefig!("$(root_dir)/solution_$(solver_name)-$(l)_$(k).pdf")
+        end
+        Threads.atomic_add!(cnt_fin, 1)
+        @printf("\r%04d/%04d tasks have been finished", cnt_fin[], num_total_tasks)
     end
+    println()
 
     @info("save result")
     CSV.write(joinpath(root_dir, "result.csv"), result)
