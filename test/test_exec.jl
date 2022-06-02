@@ -1,15 +1,5 @@
 @testset verbose = true "oracles" begin
-    import Random: seed!
-    import MAPPFD:
-        is_crashed,
-        is_finished,
-        SyncCrash,
-        Plan,
-        approx_verify_with_local_FD,
-        approx_verify_with_global_FD,
-        SyncInstance,
-        Solution,
-        SeqCrash
+    import MAPPFD: is_crashed, is_finished
 
     @testset "is_crashed" begin
         crashes = [SyncCrash(when = 1, who = 1, loc = 1)]
@@ -24,7 +14,7 @@
     end
 
     @testset "sync / local FD" begin
-        ins = SyncInstance(MAPPFD.generate_sample_graph1(), [1, 4], [3, 5])
+        ins = generate_sample_sync_instance1()
         crashes = [SyncCrash(when = 1, who = 1, loc = 1)]
         solution = Solution([
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
@@ -39,11 +29,11 @@
             ],
         ])
 
-        hist = MAPPFD.execute_with_local_FD(ins, solution)
+        hist = execute_with_local_FD(ins, solution)
         @test map(e -> e.config[1], hist) == [1, 2, 3]
         @test map(e -> e.config[2], hist) == [4, 1, 5]
 
-        hist = MAPPFD.execute_with_local_FD(ins, solution; scheduled_crashes = crashes)
+        hist = execute_with_local_FD(ins, solution; scheduled_crashes = crashes)
         @test map(e -> e.config[1], hist) == [1, 1, 1]
         @test map(e -> e.config[2], hist) == [4, 2, 5]
 
@@ -51,12 +41,12 @@
         @test approx_verify_with_local_FD(ins, solution; failure_prob = 0.5)
 
         # invalid
-        solution = MAPPFD.Solution([
+        solution = Solution([
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
             [Plan(who = 1, path = [4, 1, 5], backup = Dict(), offset = 1)],
         ])
         try
-            MAPPFD.execute_with_local_FD(ins, solution; scheduled_crashes = crashes)
+            execute_with_local_FD(ins, solution; scheduled_crashes = crashes)
             @test false
         catch e
             @test true
@@ -67,9 +57,9 @@
     end
 
     @testset "sync / global FD" begin
-        ins = SyncInstance(MAPPFD.generate_sample_graph2(), [11, 22, 19], [15, 7, 9])
+        ins = SyncInstance(generate_sample_graph2(), [11, 22, 19], [15, 7, 9])
 
-        solution = MAPPFD.Solution([
+        solution = Solution([
             [
                 Plan(
                     id = 1,
@@ -135,13 +125,13 @@
             ],
         ])
 
-        hist = MAPPFD.execute_with_global_FD(ins, solution)
+        hist = execute_with_global_FD(ins, solution)
         @test map(e -> e.config[1], hist) == [11, 12, 13, 14, 15]
         @test map(e -> e.config[2], hist) == [22, 17, 12, 7, 7]
         @test map(e -> e.config[3], hist) == [19, 14, 9, 9, 9]
 
-        crashes = [MAPPFD.SyncCrash(who = 1, loc = 12, when = 2)]
-        hist = MAPPFD.execute_with_global_FD(ins, solution; scheduled_crashes = crashes)
+        crashes = [SyncCrash(who = 1, loc = 12, when = 2)]
+        hist = execute_with_global_FD(ins, solution; scheduled_crashes = crashes)
         @test map(e -> e.config[1], hist) == [11, 12, 12, 12, 12, 12]
         @test map(e -> e.config[2], hist) == [22, 17, 16, 11, 6, 7]
         @test map(e -> e.config[3], hist) == [19, 14, 9, 9, 9, 9]
@@ -151,7 +141,7 @@
     end
 
     @testset "seq / local FD" begin
-        ins = MAPPFD.SeqInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
+        ins = generate_sample_seq_instance4()
         solution = Solution([
             [
                 Plan(
@@ -176,16 +166,16 @@
         ])
 
         seed!(1)
-        hist = MAPPFD.execute_with_local_FD(ins, solution)
+        hist = execute_with_local_FD(ins, solution)
         @test !isnothing(hist)
         @test map(e -> e.config[1], hist) == [4, 5, 6, 6, 6]
         @test map(e -> e.config[2], hist) == [8, 8, 8, 5, 2]
 
         seed!(1)
-        hist = MAPPFD.execute_with_local_FD(
+        hist = execute_with_local_FD(
             ins,
             solution,
-            scheduled_crashes = [MAPPFD.SeqCrash(who = 1, loc = 5)],
+            scheduled_crashes = [SeqCrash(who = 1, loc = 5)],
         )
         @test !isnothing(hist)
         @test map(e -> e.config[1], hist) == [4, 5, 5, 5]

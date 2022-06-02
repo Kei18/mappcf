@@ -1,24 +1,4 @@
-macro test_savefig(name::String)
-    return esc(quote
-        filename = joinpath(DIRNAME, $name * ".png")
-        MAPPFD.safe_savefig!(filename)
-        @test isfile(filename)
-    end)
-end
-
 @testset verbose = true "viz" begin
-    import MAPPFD:
-        generate_sample_graph1,
-        generate_sample_graph4,
-        plot_graph,
-        safe_savefig!,
-        SyncInstance,
-        SeqInstance,
-        plot_instance,
-        SyncCrash,
-        plot_config,
-        Plan
-
     @testset "plot_graph" begin
         G = generate_sample_graph1()
         plot_graph(G)
@@ -26,11 +6,11 @@ end
     end
 
     @testset "plot_instance" begin
-        ins = SyncInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
+        ins = generate_sample_sync_instance4()
         plot_instance(ins)
         @test_savefig("sync-ins")
 
-        ins = SeqInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
+        ins = generate_sample_seq_instance4()
         plot_instance(ins)
         @test_savefig("seq-ins")
     end
@@ -38,9 +18,8 @@ end
     @testset "plot_config" begin
         G = generate_sample_graph1()
         config = [1, 4]
-        goals = [3, 5]
         crashes = [SyncCrash(who = 1, loc = 1, when = 1)]
-        plot_config(G, config, crashes)
+        MAPPFD.plot_config(G, config, crashes)
         @test_savefig("config")
     end
 
@@ -52,8 +31,8 @@ end
     end
 
     @testset "plot_solution" begin
-        ins = SyncInstance(MAPPFD.generate_sample_graph1(), [1, 4], [3, 5])
-        solution = MAPPFD.Solution([
+        ins = generate_sample_sync_instance1()
+        solution = Solution([
             [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
             [
                 Plan(
@@ -66,18 +45,15 @@ end
             ],
         ])
 
-        MAPPFD.plot_solution(ins, solution)
+        plot_solution(ins, solution)
         @test_savefig("solution")
     end
 
     @testset "plot_anim" begin
-        G = generate_sample_graph1()
-        starts = [1, 4]
-        goals = [3, 5]
-        ins = SyncInstance(G, starts, goals)
+        ins = generate_sample_sync_instance1()
         crashes = [SyncCrash(who = 1, loc = 1, when = 1)]
 
-        hist = MAPPFD.History()
+        hist = History()
         push!(hist, (config = [1, 4], crashes = crashes))
         push!(hist, (config = [1, 2], crashes = crashes))
         push!(hist, (config = [1, 5], crashes = crashes))

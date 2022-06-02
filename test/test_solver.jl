@@ -1,7 +1,7 @@
 @testset verbose = true "solver" begin
     @testset "planner1 sync" begin
-        import MAPPFD.MultiAgentPathfinding: astar_operator_decomposition
-        ins = MAPPFD.SyncInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
+        import MAPPFD.MAPF: astar_operator_decomposition
+        ins = generate_sample_sync_instance4()
         solution = MAPPFD.planner1(
             ins,
             (ins) -> astar_operator_decomposition(ins.G, ins.starts, ins.goals),
@@ -12,7 +12,7 @@
     end
 
     @testset "planner1 seq" begin
-        ins = MAPPFD.SeqInstance(MAPPFD.generate_sample_graph4(), [4, 8], [6, 2])
+        ins = generate_sample_seq_instance4()
         solution = MAPPFD.planner1(
             ins,
             (ins) -> MAPPFD.OTIMAPP.prioritized_planning(ins.G, ins.starts, ins.goals),

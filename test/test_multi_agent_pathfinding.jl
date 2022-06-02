@@ -1,12 +1,9 @@
 @testset verbose = true "multi_agent_pathfinding" begin
-    import MAPPFD: generate_sample_graph1
-    import MAPPFD.MultiAgentPathfinding:
+    import MAPPFD.MAPF:
         prioritized_planning, astar_operator_decomposition, is_valid_mapf_solution
 
-    G = generate_sample_graph1()
-    starts = [1, 4]
-    goals = [3, 5]
-    ins = (G, starts, goals)
+    I = generate_sample_sync_instance1()
+    ins = (I.G, I.starts, I.goals)
 
     @testset "is_valid_mapf_solution" begin
         # correct
