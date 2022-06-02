@@ -1,5 +1,5 @@
-@testset verbose = true "single_agent_pathfinding" begin
-    import MAPPFD.SingleAgentPathfinding:
+@testset verbose = true "pathfinding" begin
+    import MAPPFD.Pathfinding:
         is_valid_path, timed_pathfinding, basic_pathfinding, get_distance_table
     G = generate_sample_graph1()
 

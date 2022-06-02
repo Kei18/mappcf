@@ -12,32 +12,6 @@ function is_finished(
     return all(i -> is_crashed(crashes, i) || config[i] == goals[i], 1:length(config))
 end
 
-function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
-    N = length(C_from)
-    for i = 1:N
-        v_i_from = C_from[i]
-        v_i_to = C_to[i]
-        # move
-        @assert(
-            v_i_to == v_i_from || v_i_to in get_neighbors(G, v_i_from),
-            "invalid move for agent-$i: from $(v_i_from) -> $(v_i_to)"
-        )
-        for j = i+1:N
-            v_j_from = C_from[j]
-            v_j_to = C_to[j]
-            # check collisions
-            @assert(
-                v_j_from != v_i_from,
-                "vertex collision between agent-$i and agent-$j at vertex-$(v_i_from)"
-            )
-            @assert(
-                v_j_from != v_i_to || v_j_to != v_i_from,
-                "edge collision between agent-$i and agent-$j at vertex [$v_i_from, $v_i_to]"
-            )
-        end
-    end
-end
-
 # I know that macro is not so beautiful...
 macro update_crashes_sync_model!()
     return esc(

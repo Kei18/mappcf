@@ -45,15 +45,15 @@ import Base.Iterators: product
 include("utils.jl")
 include("graph.jl")
 include("instance.jl")
-include("single_agent_pathfinding.jl")
-using .SingleAgentPathfinding
-include("multi_agent_pathfinding.jl")
-using .MultiAgentPathfinding
-const MAPF = MultiAgentPathfinding
-include("otimapp.jl")
+include("crash.jl")
+include("solution.jl")
+include("./pathfinding/pathfinding.jl")
+using .Pathfinding
+include("./mapf/mapf.jl")
+using .MAPF
+include("./otimapp/otimapp.jl")
 using .OTIMAPP
-include("solver.jl")
-include("complete_algo.jl")
+include("solver/solver.jl")
 include("exec.jl")
 include("viz.jl")
 

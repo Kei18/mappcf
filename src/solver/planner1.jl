@@ -1,57 +1,3 @@
-abstract type Crash end
-abstract type Effect end
-Crashes = Vector{Crash}
-
-@kwdef struct Event
-    crash::Crash
-    effect::Effect
-end
-
-@kwdef struct SyncCrash <: Crash
-    who::Int
-    loc::Int
-    when::Int = 1
-end
-
-@kwdef struct SeqCrash <: Crash
-    who::Int
-    loc::Int
-end
-
-@kwdef struct SyncEffect <: Effect
-    plan_id::Int
-    who::Int
-    loc::Int
-    when::Int = 1
-end
-
-@kwdef struct SeqEffect <: Effect
-    plan_id::Int
-    who::Int
-    loc::Int
-    when::Int = 1
-end
-
-Base.show(io::IO, c::SyncCrash) =
-    print(io, "SyncCrash(who=$(c.who), loc=$(c.loc), when=$(c.when))")
-Base.show(io::IO, c::SeqCrash) = print(io, "SeqCrash(who=$(c.who), loc=$(c.loc))")
-Base.show(io::IO, e::SyncEffect) = print(
-    io,
-    "SyncEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))",
-)
-Base.show(io::IO, e::SeqEffect) =
-    print(io, "SeqEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))")
-
-@kwdef mutable struct Plan
-    id::Int = 1
-    who::Int
-    path::Path
-    offset::Int
-    backup::Dict{Crash,Int} = Dict()  # detecting crash -> next plan id
-    crashes::Vector{Crash} = []
-end
-Solution = Vector{Vector{Plan}}
-
 function planner1(
     ins::Instance,
     multi_agent_path_planner::Function,  # (Instance) -> Paths
@@ -88,26 +34,6 @@ function get_initial_solution(
     N = length(primary_paths)
     return map(i -> [Plan(id = 1, who = i, path = primary_paths[i], offset = 1)], 1:N)
 end
-
-function get_correct_crashed_agents(
-    N::Int,
-    crashes::Vector{T} where {T<:Crash},
-)::@NamedTuple {correct_agents::Vector{Int}, crashed_agents::Vector{Int}}
-    crashed_agents = map(c -> c.who, crashes)
-    correct_agents = filter(i -> all(j -> j != i, crashed_agents), 1:N)
-    return (correct_agents = correct_agents, crashed_agents = crashed_agents)
-end
-
-function get_correct_crashed_agents(
-    N::Int,
-    i::Int,
-    crashes::Vector{T} where {T<:Crash},
-)::@NamedTuple {correct_agents::Vector{Int}, crashed_agents::Vector{Int}}
-    (correct_agents, crashed_agents) = get_correct_crashed_agents(N, crashes)
-    filter!(j -> j != i, correct_agents)
-    return (correct_agents = correct_agents, crashed_agents = crashed_agents)
-end
-
 
 function register!(solution::Solution, event::Event, new_plan::Plan)
     i = event.effect.who
@@ -156,7 +82,7 @@ function get_new_unresolved_events(
 
     N = length(solution)
     i = plan_i.who
-    (correct_agents, crashed_agents) = get_correct_crashed_agents(N, i, plan_i.crashes)
+    correct_agents, = get_correct_crashed_agents(N, i, plan_i.crashes)
 
     # storing who uses where and when
     table = Dict()
@@ -211,7 +137,7 @@ function find_backup_plan(
     g = ins.goals[i]
     # crashes must be handled
     crashes = vcat(original_plan_i.crashes, event.crash)
-    (correct_agents, crashed_agents) = get_correct_crashed_agents(N, i, crashes)
+    correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
 
@@ -237,33 +163,6 @@ function find_backup_plan(
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
 end
 
-
-function add_event!(
-    U::Vector{Event},
-    ins::SeqInstance;
-    v::Int,
-    plan_i::Plan,
-    plan_j::Plan,
-    t_j::Int,
-    t_i::Int,
-)::Nothing
-
-    i = plan_i.who
-    j = plan_j.who
-    @assert(i != j, "add_event!")
-    c_i = SeqCrash(who = i, loc = v)
-    c_j = SeqCrash(who = j, loc = v)
-    if t_i > 1 && !haskey(plan_i.backup, c_j)
-        e_i = SeqEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        push!(U, Event(crash = c_j, effect = e_i))
-    end
-    if t_j > 1 && !haskey(plan_j.backup, c_i)
-        e_j = SeqEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        push!(U, Event(crash = c_i, effect = e_j))
-    end
-    nothing
-end
-
 # =============================================================
 # synchronous model
 # =============================================================
@@ -284,7 +183,7 @@ function find_backup_plan(
     s = original_plan_i.path[offset]
     # crashes must be handled
     crashes = vcat(original_plan_i.crashes, event.crash)
-    (correct_agents, crashed_agents) = get_correct_crashed_agents(N, i, crashes)
+    correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
 
@@ -317,53 +216,4 @@ function find_backup_plan(
     isnothing(path) && return nothing
     path = vcat(original_plan_i.path[1:offset-1], path)
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
-end
-
-function get_sync_event(;
-    v::Int,
-    i::Int,
-    j::Int,
-    t_i::Int,
-    t_j::Int,
-    plan_i_id::Int = 1,
-    plan_j_id::Int = 1,
-    offset::Int = 1,
-)::Event
-
-    @assert(i != j, "add_event!")
-    @assert(t_i != t_j, "collision occurs")
-
-    if t_i < t_j
-        c_i = SyncCrash(who = i, loc = v, when = t_i + offset - 1)
-        e_j = SyncEffect(who = j, when = t_j + offset - 1, loc = v, plan_id = plan_j_id)
-        return Event(crash = c_i, effect = e_j)
-    else  # t_j < t_i
-        c_j = SyncCrash(who = j, loc = v, when = t_j + offset - 1)
-        e_i = SyncEffect(who = i, when = t_i + offset - 1, loc = v, plan_id = plan_i_id)
-        return Event(crash = c_j, effect = e_i)
-    end
-end
-
-function add_event!(
-    U::Vector{Event},
-    ins::SyncInstance;
-    v::Int,
-    plan_i::Plan,
-    plan_j::Plan,
-    t_i::Int,
-    t_j::Int,
-)::Nothing
-    push!(
-        U,
-        get_sync_event(
-            v = v,
-            i = plan_i.who,
-            j = plan_j.who,
-            t_i = t_i,
-            t_j = t_j,
-            plan_i_id = plan_i.id,
-            plan_j_id = plan_j.id,
-        ),
-    )
-    nothing
 end
