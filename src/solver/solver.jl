@@ -1,3 +1,26 @@
+module Solver
+
+export Effect, planner1, planner2
+
+import Base: @kwdef
+import ..MAPPFD:
+    Graph,
+    Path,
+    Paths,
+    Crash,
+    Config,
+    Instance,
+    SeqInstance,
+    SyncInstance,
+    SeqCrash,
+    SyncCrash,
+    Plan,
+    Solution,
+    get_correct_crashed_agents,
+    get_in_range
+import ..MAPPFD.OTIMAPP: FragmentTable, potential_deadlock_exists
+import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding
+
 abstract type Effect end
 @kwdef struct Event
     crash::Crash
@@ -28,3 +51,5 @@ Base.show(io::IO, e::SeqEffect) =
 include("./utils.jl")
 include("./planner1.jl")
 include("./planner2.jl")
+
+end

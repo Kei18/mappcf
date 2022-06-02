@@ -1,7 +1,7 @@
 # global failure detector
 function planner2(
     ins::SyncInstance,
-    multi_agent_path_planner::Function = astar_operator_decomposition;
+    multi_agent_path_planner::Function;
     VERBOSE::Int = 0,
 )::Solution
     return flatten_recursive_solution(

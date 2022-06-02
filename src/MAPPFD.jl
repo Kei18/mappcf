@@ -10,11 +10,14 @@ export
     generate_random_grid,
     # instance
     Config,
+    Paths,
+    Instance,
     SyncInstance,
     SeqInstance,
     generate_random_sync_instance_grid,
     generate_random_seq_instance_grid,
     # solution
+    Crash,
     SyncCrash,
     SeqCrash,
     Plan,
@@ -54,6 +57,7 @@ using .MAPF
 include("./otimapp/otimapp.jl")
 using .OTIMAPP
 include("solver/solver.jl")
+using .Solver
 include("exec.jl")
 include("viz.jl")
 
