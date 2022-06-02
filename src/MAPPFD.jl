@@ -8,14 +8,17 @@ export
     remove_edges!,
     generate_grid,
     generate_random_grid,
-    # instance
     Config,
+    Path,
     Paths,
+    # instance
     Instance,
     SyncInstance,
     SeqInstance,
     generate_random_sync_instance_grid,
     generate_random_seq_instance_grid,
+    generate_multiple_random_sync_instance_grid,
+    generate_multiple_random_seq_instance_grid,
     # solution
     Crash,
     SyncCrash,
@@ -43,7 +46,6 @@ import Base: @kwdef, get
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 using Plots
 import ColorSchemes
-import Base.Iterators: product
 
 include("utils.jl")
 include("graph.jl")

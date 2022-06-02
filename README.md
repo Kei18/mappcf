@@ -4,10 +4,8 @@ Multi-Agent Path Planning with Failure Detectors
 [![CI](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml)
 
 ## TODO
-- [ ] create instance generator
-- [ ] organize mapf validation
-- [ ] multi-agent path planner -> examples.jl
 - [ ] efficiently reuse heuristics function
+- [ ] organize eval.jl
 
 ## Setup
 

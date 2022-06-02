@@ -72,3 +72,11 @@ function add_event!(
     )
     nothing
 end
+
+function astar_operator_decomposition(ins::SyncInstance)::Paths
+    return astar_operator_decomposition(ins.G, ins.starts, ins.goals)
+end
+
+function seq_prioritized_planning(ins::SeqInstance)::Paths
+    return seq_prioritized_planning(ins.G, ins.starts, ins.goals)
+end

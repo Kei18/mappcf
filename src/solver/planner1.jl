@@ -1,7 +1,7 @@
 function planner1(
     ins::Instance,
-    multi_agent_path_planner::Function,  # (Instance) -> Paths
     ;
+    multi_agent_path_planner::Function,  # (Instance) -> Paths
     VERBOSE::Int = 0,
 )::Union{Nothing,Solution}
     # get initial solution

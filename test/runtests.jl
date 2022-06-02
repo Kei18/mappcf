@@ -24,5 +24,4 @@ include("./test_solver.jl")
 include("./test_exec.jl")
 include("./test_viz.jl")
 include("./test_example.jl")
-
-# include("./test_scripts.jl")
+include("./test_scripts.jl")

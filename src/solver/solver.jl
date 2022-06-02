@@ -3,6 +3,7 @@ module Solver
 export Effect, planner1, planner2
 
 import Base: @kwdef
+import Base.Iterators: product
 import ..MAPPFD:
     Graph,
     Path,
@@ -18,8 +19,12 @@ import ..MAPPFD:
     Solution,
     get_correct_crashed_agents,
     get_in_range
-import ..MAPPFD.OTIMAPP: FragmentTable, potential_deadlock_exists
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding
+import ..MAPPFD.MAPF: astar_operator_decomposition
+import ..MAPPFD.OTIMAPP:
+    FragmentTable,
+    potential_deadlock_exists,
+    prioritized_planning as seq_prioritized_planning
 
 abstract type Effect end
 @kwdef struct Event
