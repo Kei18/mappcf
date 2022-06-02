@@ -1,5 +1,7 @@
 #!/bin/sh
 echo "code formatting by JuliaFormatter"
 julia --project=. -e 'using JuliaFormatter; format(".")'
-git add ./**/*.jl
+for FILE in `git diff --staged --name-only`; do
+    git add $FILE
+done
 echo "formatting done"

@@ -1,12 +1,19 @@
-COLORS = collect(ColorSchemes.seaborn_bright)
+const COLORS = collect(ColorSchemes.seaborn_bright)
 
-function get_colors(N::Int)
+function get_colors(N::Int)::Vector{ColorTypes.RGB{Float64}}
     N <= length(COLORS) && return COLORS[1:N]
     return vcat(map(_ -> COLORS, 1:ceil(Int, N / length(COLORS)))...)[1:N]
 end
 
-function get_color(i::Int64)
+function get_color(i::Int64)::ColorTypes.RGB{Float64}
     return COLORS[mod1(i, length(COLORS))]
+end
+
+function safe_savefig!(filename::Union{Nothing,String} = nothing)
+    isnothing(filename) && return
+    dirname = join(split(filename, "/")[1:end-1], "/")
+    !isdir(dirname) && mkpath(dirname)
+    savefig(filename)
 end
 
 function plot_init()
@@ -73,24 +80,6 @@ function plot_goals!(G::Graph, goals::Config)
     )
 end
 
-function plot_crashes!(G::Graph, config::Config, crashes::Crashes = Crashes([]), t::Int = 1)
-    positions = hcat(
-        map(
-            k -> get(G, config[k]).pos,
-            filter(k -> is_crashed(crashes, k, t), 1:length(config)),
-        )...,
-    )
-    isempty(positions) && return plot!()
-    return scatter!(
-        positions[1, :],
-        positions[2, :],
-        label = nothing,
-        markersize = 8,
-        markershape = :diamond,
-        markercolor = :lightgray,
-    )
-end
-
 function plot_instance(
     G::Graph,
     starts::Config,
@@ -104,115 +93,39 @@ function plot_instance(
     return plot!()
 end
 
-function plot_instance(
-    ins::Tuple{Graph,Config,Config};
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
-)
-    return plot_instance(
-        ins...;
-        show_agent_id = show_agent_id,
-        show_vertex_id = show_vertex_id,
+function plot_instance(ins::Instance; kwargs...)
+    return plot_instance(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function plot_crashes!(G::Graph, config::Config, crashes::Vector{T} where {T<:Crash})
+    positions = hcat(
+        map(
+            k -> get(G, config[k]).pos,
+            filter(k -> is_crashed(crashes, k), 1:length(config)),
+        )...,
+    )
+    isempty(positions) && return plot!()
+    return scatter!(
+        positions[1, :],
+        positions[2, :],
+        label = nothing,
+        markersize = 8,
+        markershape = :diamond,
+        markercolor = :lightgray,
     )
 end
 
 function plot_config(
     G::Graph,
     config::Config,
-    crashes::Crashes = Crashes([]),
-    t::Int = 1;
-    goals::Config = Config([]),
+    crashes::Vector{T} = Vector{T}();
     show_agent_id::Bool = false,
     show_vertex_id::Bool = false,
-)
-    plot_instance(
-        G,
-        config,
-        goals;
-        show_vertex_id = show_vertex_id,
-        show_agent_id = show_agent_id,
-    )
-    plot_crashes!(G, config, crashes, t)
+) where {T<:Crash}
+    plot_graph(G; show_vertex_id = show_vertex_id)
+    plot_locs!(G, config; show_agent_id = show_agent_id)
+    plot_crashes!(G, config, crashes)
     return plot!()
-end
-
-function plot_solution(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution,
-    ;
-    linewidth = 6,
-    δ = 0.02,
-    ϵ = 0.4,
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
-)
-    plot_instance(
-        G,
-        starts,
-        goals;
-        show_agent_id = show_agent_id,
-        show_vertex_id = show_vertex_id,
-    )
-    isnothing(solution) && return plot!()
-    N = length(starts)
-    for i = 1:N
-        δ_fixed = rand() * 2δ - δ
-        for (k, (path, bakcup, time_offset)) in enumerate(solution[i])
-            positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], path)...)
-            X = positions[1, :][time_offset:end]
-            Y = positions[2, :][time_offset:end]
-            plot!(
-                X,
-                Y,
-                label = nothing,
-                color = get_color(i),
-                linewidth = linewidth * (ϵ^(k - 1)),
-            )
-        end
-    end
-    plot!()
-end
-
-function plot_solution_global_FD(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution,
-    ;
-    linewidth = 6,
-    δ = 0.02,
-    ϵ = 0.4,
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
-)
-    plot_instance(
-        G,
-        starts,
-        goals;
-        show_agent_id = show_agent_id,
-        show_vertex_id = show_vertex_id,
-    )
-    isnothing(solution) && return plot!()
-    N = length(starts)
-
-    myplot(plan, depth = 0) = begin
-        for (i, path) in enumerate(plan.paths)
-            δ_fixed = rand() * 2δ - δ
-            positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], path)...)
-            plot!(
-                positions[1, :],
-                positions[2, :],
-                label = nothing,
-                color = get_color(i),
-                linewidth = linewidth * (ϵ^(depth)),
-            )
-        end
-        foreach(backup -> myplot(backup, depth + 1), values(plan.backups))
-    end
-    myplot(solution)
-    plot!()
 end
 
 function plot_paths(
@@ -245,6 +158,49 @@ function plot_paths(
     return plot!()
 end
 
+function plot_solution(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    solution::Solution,
+    ;
+    linewidth = 6,
+    δ = 0.02,
+    ϵ = 0.4,
+    show_agent_id::Bool = false,
+    show_vertex_id::Bool = false,
+)
+    plot_instance(
+        G,
+        starts,
+        goals;
+        show_agent_id = show_agent_id,
+        show_vertex_id = show_vertex_id,
+    )
+    isnothing(solution) && return plot!()
+    N = length(starts)
+    for i = 1:N
+        δ_fixed = rand() * 2δ - δ
+        for (k, plan) in enumerate(solution[i])
+            positions = hcat(map(k -> get(G, k).pos + [δ_fixed, δ_fixed], plan.path)...)
+            X = positions[1, :][plan.offset:end]
+            Y = positions[2, :][plan.offset:end]
+            plot!(
+                X,
+                Y,
+                label = nothing,
+                color = get_color(i),
+                linewidth = linewidth * (ϵ^(k - 1)),
+            )
+        end
+    end
+    plot!()
+end
+
+function plot_solution(ins::Instance, solution::Solution; kwargs...)
+    return plot_solution(ins.G, ins.starts, ins.goals, solution; kwargs...)
+end
+
 function plot_anim(
     G::Graph,
     hist::History;
@@ -260,8 +216,7 @@ function plot_anim(
         plot_config(
             G,
             config,
-            crashes,
-            k;
+            crashes;
             show_agent_id = show_agent_id,
             show_vertex_id = show_vertex_id,
         )
@@ -285,11 +240,6 @@ function plot_anim(
     gif(anim, filename; fps = fps)
 end
 
-function safe_savefig!(filename::Union{Nothing,String} = nothing)
-    isnothing(filename) && return
-    dirname = join(split(filename, "/")[1:end-1], "/")
-    !isdir(dirname) && mkpath(dirname)
-    savefig(filename)
+function plot_anim(ins::Instance, hist::History; kwargs...)
+    return plot_anim(ins.G, hist; goals = ins.goals, kwargs...)
 end
-
-export plot_graph, plot_config, safe_savefig!

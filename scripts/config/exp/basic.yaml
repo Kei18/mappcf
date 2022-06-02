@@ -1,0 +1,22 @@
+root: ../data/exp/
+
+seed_offset: 0
+save_plot: true
+
+instances:
+  _target_: generate_multiple_random_sync_instance_grid
+  num: 1
+  N_min: 3
+  N_max: 5
+  width: 8
+  height: 8
+  occupancy_rate: 0.05
+
+solvers:
+  - _target_: MAPPFD.planner1
+    multi_agent_path_planner:
+      _target_: MAPPFD.Solver.astar_operator_decomposition
+
+verification:
+  _target_: approx_verify_with_local_FD
+  max_activation: 10

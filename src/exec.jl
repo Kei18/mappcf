@@ -1,298 +1,323 @@
-@kwdef struct Crash
-    when::Int  # timestep
-    who::Int   # agent index
-    loc::Int   # location index
-end
-Crashes = Vector{Crash}
-Base.show(io::IO, c::Crash) = print(io, "Crash(when=$(c.when), who=$(c.who), loc=$(c.loc))")
-# Base.show(io::IO, crashes::Crashes) = begin
-#     print(io, "[")
-#     foreach(c -> print(io, "$c, "), crashes)
-#     print(io, "]")
-# end
+History = Vector{@NamedTuple {config::Config, crashes::Vector{Crash}}}
 
-History = Vector{@NamedTuple {config::Config, crashes::Crashes}}
-
-function is_neighbor(G::Graph, config::Config, agent::Int, target_loc::Int)::Bool
-    return target_loc in get_neighbors(G, config[agent])
+function is_crashed(crashes::Vector{T} where {T<:Crash}, who::Int)::Bool
+    return any(crash -> crash.who == who, crashes)
 end
 
-function is_crashed(crashes::Crashes, agent::Int, t::Int)::Bool
-    return any(crash -> crash.who == agent && crash.when <= t, crashes)
-end
-
-function is_occupied(config::Config, target_loc::Int)::Bool
-    return target_loc in config
-end
-
-function non_anonymous_failure_detector(
-    crashes::Crashes,
-    target_loc::Int,
-    target_agent::Int,
-)::Bool
-    return any(crash -> crash.who == target_agent && crash.loc == target_loc, crashes)
-end
-
-function non_anonymous_failure_detector(crashes::Crashes, target_loc::Int)::Bool
-    return any(crash.loc == target_loc, crashes)
-end
-
-function is_finished(config::Config, crashes::Crashes, goals::Config, t::Int)::Bool
-    return all(i -> is_crashed(crashes, i, t) || config[i] == goals[i], 1:length(config))
-end
-
-function emulate_crashes!(
+function is_finished(
     config::Config,
-    crashes::Crashes,
-    timestep::Int;
-    failure_prob::Real = 0.2,
-    VERBOSE::Int = 0,
-)::Nothing
-    N = length(config)
-    for i in filter(i -> !is_crashed(crashes, i, timestep), 1:N)
-        if rand() < failure_prob
-            loc_id = config[i]
-            VERBOSE > 0 && @info(@sprintf("agent-%d is crashed at loc-%d", i, loc_id))
-            push!(crashes, Crash(who = i, when = timestep, loc = loc_id))
-        end
-    end
+    crashes::Vector{T} where {T<:Crash},
+    goals::Config,
+)::Bool
+    return all(i -> is_crashed(crashes, i) || config[i] == goals[i], 1:length(config))
 end
 
+# I know that macro is not so beautiful...
+macro update_crashes_sync_model!()
+    return esc(
+        quote
+            (crashes::Vector{SyncCrash}, config::Config) -> begin
+                for c in scheduled_crashes
+                    c.when != current_timestep + 1 && continue
+                    crashes in scheduled_crashes && continue
+                    isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                        continue
+                    push!(crashes, c)
+                end
 
-function synchronous_global_execute(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution;
-    crashes = Crashes(),
-    failure_prob::Real = 0,
-    max_makespan::Int = 20,
-    VERBOSE::Int = 0,
-)::Union{History,Nothing}
-
-    N = length(goals)
-    state_ids = fill(1, N)
-    config = copy(starts)
-    hist = History()
-
-    VERBOSE > 0 && @info("start synchronous execution")
-    # initial step
-    emulate_crashes!(config, crashes, 1, failure_prob = failure_prob, VERBOSE = VERBOSE)
-    push!(hist, (config = copy(config), crashes = copy(crashes)))
-
-    plan = solution
-    for t = 1:max_makespan
-        # update plan
-        for crash in filter(c -> c.when == t, crashes)
-            if !isempty(plan.backups) && haskey(plan.backups, crash)
-                plan = plan.backups[crash]
-            end
-        end
-        # update config
-        config_prev = copy(config)
-        for i = 1:N
-            is_crashed(crashes, i, t) && continue
-            loc_now = config[i]
-            path = plan.paths[i]
-            loc_next = path[min(t - plan.time_offset + 2, length(path))]
-            @assert(
-                loc_next == loc_now || loc_next in get_neighbors(G, loc_now),
-                "invalid move"
-            )
-            config[i] = loc_next
-        end
-        # check consistency
-        for i = 1:N
-            if config[i] != config_prev[i] &&
-               !(config[i] in get_neighbors(G, config_prev[i]))
-                VERBOSE > 0 && @warn(
-                    "invalid execution, move for agent-$i from v-$(config[i]) to v-$(config_prev[i])"
-                )
-                return nothing
-            end
-            for j = i+1:N
-                if config[i] == config[j] ||
-                   (config[i] == config_prev[j] && config_prev[i] == config[j])
-                    if VERBOSE > 0
-                        s = "invalid execution, collision between"
-                        s *= "$i ($(config_prev[i]) -> $(config[i])) and "
-                        s *= "$j ($(config_prev[j]) -> $(config[j]))\n"
-                        s *= "crashes: $crashes"
-                        @warn(s)
-                    end
-                    return nothing
+                failure_prob == 0 && return
+                for i = 1:N
+                    is_crashed(crashes, i) && continue
+                    rand() > failure_prob && continue
+                    VERBOSE > 0 &&
+                        @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
+                    push!(
+                        crashes,
+                        SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),
+                    )
                 end
             end
-        end
+        end,
+    )
+end
 
+function execute(
+    ins::Ins,
+    solution::Union{Nothing,Solution},
+    update_config!::Function,
+    update_crashes!::Function,
+    ;
+    max_activation::Int = 30,
+    VERBOSE::Int = 0,
+)::Union{History,Nothing} where {Ins<:Instance}
 
-        emulate_crashes!(config, crashes, t + 1; failure_prob = failure_prob)
+    isnothing(solution) && return nothing
+
+    config = copy(ins.starts)
+    crashes = (Ins == SyncInstance) ? Vector{SyncCrash}() : Vector{SeqCrash}()
+    hist = History()
+
+    # initial step
+    update_crashes!(crashes, config)
+    push!(hist, (config = copy(config), crashes = copy(crashes)))
+
+    for t = 1:max_activation
+        # update configuration
+        update_config!(config, crashes)
+        update_crashes!(crashes, config)
+
+        # update history
         push!(hist, (config = copy(config), crashes = copy(crashes)))
 
+        # verification
+        check_valid_transition(ins.G, hist[end-1].config, hist[end].config)
+
         # check termination
-        if is_finished(config, crashes, goals, t)
-            VERBOSE > 0 && @info("finish execution")
+        if is_finished(config, crashes, ins.goals)
+            VERBOSE > 0 && @info("finish execution at $(t)-th activation's")
             return hist
         end
     end
 
-    VERBOSE > 0 && @info("fail to reach the termination")
+    VERBOSE > 0 && @warn("reaching at max_activation:$max_activation")
     return nothing
 end
 
-function sync_global_verification(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution;
-    num_repetition::Int = 20,
-    failure_prob::Real = 0.1,
-    max_makespan::Int = 30,
-)::Bool
-    return isnothing(solution) || all(
-        k ->
-            !isnothing(
-                synchronous_global_execute(
-                    G,
-                    starts,
-                    goals,
-                    solution;
-                    failure_prob = failure_prob,
-                    max_makespan = max_makespan,
-                ),
-            ),
-        1:num_repetition,
-    )
-end
-
-
-function synchronous_execute(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution;
-    crashes = Crashes(),
+function execute_with_local_FD(
+    ins::SyncInstance,
+    solution::Union{Nothing,Solution};
+    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
     failure_prob::Real = 0,
-    max_makespan::Int = 10,
+    max_activation::Int = 30,
     VERBOSE::Int = 0,
 )::Union{History,Nothing}
 
-    N = length(goals)
-    state_ids = fill(1, N)
-    config = map(i -> solution[i][1].path[1], 1:N)
-    hist = History()
+    N = length(ins.goals)
 
-    VERBOSE > 0 && @info("start synchronous execution")
-    # initial step
-    emulate_crashes!(config, crashes, 1, failure_prob = failure_prob, VERBOSE = VERBOSE)
-    push!(hist, (config = copy(config), crashes = copy(crashes)))
+    # will be updated via functions
+    plan_id_list = fill(1, N)
+    current_timestep = 0
 
-    for t = 1:max_makespan
-        # state change
-        for i = 1:N
-            # skip crashed agents
-            is_crashed(crashes, i, t) && continue
+    update_config! =
+        (config::Config, crashes::Vector{SyncCrash}) -> begin
+            current_timestep += 1
+            for i = 1:N
+                # skip crashed agents
+                is_crashed(crashes, i) && continue
 
-            # plan update
+                # plan update
+                while true
+                    # retrieve current plan
+                    plan = solution[i][plan_id_list[i]]
+                    v_next = get_in_range(plan.path, current_timestep + 1)
+
+                    # crash exists at next position?
+                    crash = find_first_element(
+                        c -> c.loc == v_next && c.when <= current_timestep,
+                        crashes,
+                    )
+                    isnothing(crash) && break
+
+                    # find backup path
+                    backup_key = find_first_element(
+                        c ->
+                            c.when <= current_timestep &&
+                                c.loc == v_next &&
+                                c.who == crash.who,
+                        collect(keys(plan.backup)),
+                    )
+                    @assert(!isnothing(backup_key), "no backup path")
+                    next_plan_id = plan.backup[backup_key]
+                    @assert(plan_id_list[i] != next_plan_id, "invalid transition")
+                    plan_id_list[i] = next_plan_id
+                end
+            end
+            for (i, id) in enumerate(plan_id_list)
+                is_crashed(crashes, i) && continue
+                config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
+            end
+        end
+
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        @update_crashes_sync_model!();
+        max_activation = max_activation,
+    )
+end
+
+function execute_with_global_FD(
+    ins::SyncInstance,
+    solution::Union{Nothing,Solution};
+    scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
+    failure_prob::Real = 0,
+    max_activation::Int = 30,
+    VERBOSE::Int = 0,
+)::Union{History,Nothing}
+
+    N = length(ins.goals)
+
+    # will be updated via functions
+    plan_id_list = fill(1, N)
+    current_timestep = 0
+
+    update_config! =
+        (config::Config, crashes::Vector{SyncCrash}) -> begin
+            current_timestep += 1  # update time
+            for crash in filter(c -> c.when == current_timestep, crashes)
+                for i = 1:N
+                    # skip crashed agents
+                    is_crashed(crashes, i) && continue
+
+                    # retrieve current plan
+                    plan = solution[i][plan_id_list[i]]
+                    !haskey(plan.backup, crash) && continue
+
+                    # update plan id
+                    next_plan_id = plan.backup[crash]
+                    @assert(plan_id_list[i] != next_plan_id, "invalid transition")
+                    plan_id_list[i] = next_plan_id
+                end
+            end
+            for (i, id) in enumerate(plan_id_list)
+                is_crashed(crashes, i) && continue
+                config[i] = get_in_range(solution[i][id].path, current_timestep + 1)
+            end
+        end
+
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        @update_crashes_sync_model!();
+        max_activation = max_activation,
+    )
+end
+
+function execute_with_local_FD(
+    ins::SeqInstance,
+    solution::Union{Nothing,Solution},
+    ;
+    scheduled_crashes::Vector{SeqCrash} = Vector{SeqCrash}(),
+    max_activation::Int = 30,
+    failure_prob::Real = 0,
+    VERBOSE::Int = 0,
+)::Union{History,Nothing}
+
+    N = length(ins.goals)
+
+    # will be updated via functions
+    plan_id_list = fill(1, N)
+    progress_indexes = fill(1, N)
+
+    update_config! =
+        (config::Config, crashes::Vector{SeqCrash}) -> begin
+            # identify alive agents
+            correct_agents, = get_correct_crashed_agents(N, crashes)
+            alive_agents = filter!(
+                i -> begin
+                    path = solution[i][plan_id_list[i]].path
+                    t = progress_indexes[i]
+                    # agents at goals should be excluded
+                    t >= length(path) && return false
+                    # stationary motion should be excluded from the solution
+                    @assert(path[t] != path[t+1], "stationary motion is included")
+                    # next vertex should be unoccupied
+                    any(j -> config[j] == path[t+1], correct_agents) && return false
+                    return true
+                end,
+                correct_agents,
+            )
+
+            isempty(alive_agents) && return nothing
+
+            # pickup one agent
+            i = rand(alive_agents)
+
+            # activate, state transition
             while true
                 # retrieve current plan
-                plan = solution[i][state_ids[i]]
-                path = plan.path
-                loc_next = path[min(t + 1, length(path))]
+                plan = solution[i][plan_id_list[i]]
+                t = progress_indexes[i]
+                @assert(t + 1 <= length(plan.path), "invalid plan")
+                v_next = plan.path[t+1]
 
-                # no crash at next position?
-                crash_index = findfirst(c -> c.loc == loc_next && c.when <= t, crashes)
-                isnothing(crash_index) && break
-                crash = crashes[crash_index]
+                # state change
+                crash = find_first_element(c -> c.loc == v_next, crashes)
+                isnothing(crash) && break
+                @assert(haskey(plan.backup, crash), "no backup plan")
+                next_plan_id = plan.backup[crash]
+                @assert(plan_id_list[i] != next_plan_id, "invalid transition")
+                plan_id_list[i] = next_plan_id
+            end
 
-                # find backup path
-                backup_keys = collect(keys(plan.backup))
-                backup_index = findfirst(
-                    c -> c.when < t + 1 && c.loc == loc_next && c.who == crash.who,
-                    backup_keys,
-                )
+            # update configuration
+            progress_indexes[i] += 1
+            v_next = solution[i][plan_id_list[i]].path[progress_indexes[i]]
+            config[i] = v_next
+        end
 
-                # no backup path -> failure
-                if isnothing(backup_index)
-                    VERBOSE > 0 && @warn(
-                        @sprintf(
-                            "agent-%d has no backup path for %s at timestep-%d",
-                            i,
-                            crash,
-                            t
-                        )
-                    )
-                    return nothing
-                end
+    update_crashes! =
+        (crashes::Vector{SeqCrash}, config::Config) -> begin
+            for c in scheduled_crashes
+                config[c.who] != c.loc && continue
+                c in crashes && continue
+                isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
+                    continue
+                push!(crashes, c)
+            end
 
-                next_plan_id = plan.backup[backup_keys[backup_index]]
-                # check eternal loop
-                @assert(state_ids[i] != next_plan_id, "invalid transition")
-                state_ids[i] = next_plan_id
+            failure_prob == 0 && return
+            for i = 1:N
+                is_crashed(crashes, i) && continue
+                rand() > failure_prob && continue
+                VERBOSE > 0 && @info("agent-$i is crashed at vertex-$(config[i])")
+                push!(crashes, SeqCrash(who = i, loc = config[i]))
             end
         end
 
-        # update config
-        for i = 1:N
-            is_crashed(crashes, i, t) && continue
-            loc_now = config[i]
-            path = solution[i][state_ids[i]].path
-            loc_next = path[min(t + 1, length(path))]
-            @assert(
-                loc_next == loc_now || loc_next in get_neighbors(G, loc_now),
-                "invalid move"
-            )
-            config[i] = loc_next
-        end
-        emulate_crashes!(config, crashes, t; failure_prob = failure_prob)
-        push!(hist, (config = copy(config), crashes = copy(crashes)))
-
-        # check termination
-        if is_finished(config, crashes, goals, t)
-            VERBOSE > 0 && @info("finish execution")
-            return hist
-        end
-    end
-
-    VERBOSE > 0 && @warn(@sprintf("reaching max_makespan%d", max_makespan))
-    return nothing
+    return execute(
+        ins,
+        solution,
+        update_config!,
+        update_crashes!;
+        max_activation = max_activation,
+    )
 end
 
-function sequential_execute(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution;
-    crashes = Crashes(),
-    failure_prob::Real = 0,
-    max_activation::Int = 10,
-    VERBOSE::Int = 0,
-)::Union{History,Nothing}
-    return nothing
-end
-
-
-function sync_verification(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    solution;
+function approx_verify(
+    exec::Function,
+    ins::Instance,
+    solution::Solution;
     num_repetition::Int = 20,
     failure_prob::Real = 0.1,
-    max_makespan::Int = 30,
+    max_activation::Int = 30,
 )::Bool
-    return isnothing(solution) || all(
-        k ->
-            !isnothing(
-                synchronous_execute(
-                    G,
-                    starts,
-                    goals,
-                    solution;
-                    failure_prob = failure_prob,
-                    max_makespan = max_makespan,
-                ),
-            ),
-        1:num_repetition,
-    )
+
+    isnothing(solution) && return true
+
+    try
+        for _ = 1:num_repetition
+            res = exec(
+                ins,
+                solution;
+                failure_prob = failure_prob,
+                max_activation = max_activation,
+            )
+            isnothing(res) && return false
+        end
+        return true
+    catch e
+        @warn(e)
+        return false
+    end
+end
+
+function approx_verify_with_local_FD(args...; kwargs...)::Bool
+    approx_verify(execute_with_local_FD, args...; kwargs...)
+end
+
+function approx_verify_with_global_FD(args...; kwargs...)::Bool
+    approx_verify(execute_with_global_FD, args...; kwargs...)
 end
