@@ -18,7 +18,10 @@ import ..MAPPFD:
     Plan,
     Solution,
     get_correct_crashed_agents,
-    get_in_range
+    get_in_range,
+    Deadline,
+    generate_deadline,
+    is_expired
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding
 import ..MAPPFD.MAPF: astar_operator_decomposition
 import ..MAPPFD.OTIMAPP:

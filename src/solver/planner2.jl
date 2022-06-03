@@ -3,9 +3,20 @@ function planner2(
     ins::SyncInstance;
     multi_agent_path_planner::Function,
     VERBOSE::Int = 0,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Solution
     return flatten_recursive_solution(
-        planner2(ins.G, ins.starts, ins.goals, multi_agent_path_planner),
+        planner2(
+            ins.G,
+            ins.starts,
+            ins.goals,
+            multi_agent_path_planner;
+            VERBOSE = VERBOSE,
+            deadline = deadline,
+        ),
     )
 end
 
@@ -22,12 +33,27 @@ function planner2(
     multi_agent_path_planner::Function,
     crashes::Vector{Crash} = Vector{Crash}(),
     offset::Int = 1,
-    parent_constrations::Vector{Effect} = Vector{Effect}(),
+    parent_constrations::Vector{Effect} = Vector{Effect}();
+    VERBOSE::Int = 0,
+    deadline::Union{Nothing,Deadline} = nothing,
 )::Union{Nothing,RecursiveSolution}
+
     constraints = copy(parent_constrations)
     @label START_PLANNING
+    # check time limit
+    is_expired(deadline) && return nothing
+
     # compute collision-free paths
-    paths = multi_agent_path_planner(G, starts, goals, crashes, constraints, offset)
+    paths = multi_agent_path_planner(
+        G,
+        starts,
+        goals,
+        crashes,
+        constraints,
+        offset;
+        deadline = deadline,
+        VERBOSE = VERBOSE - 1,
+    )
     isnothing(paths) && return nothing
 
     # identify critical sections

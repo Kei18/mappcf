@@ -13,6 +13,10 @@ function timed_pathfinding(;
     check_goal::Function,
     invalid::Function = (S_from, S_to) -> false,
     h_func::Function = (u) -> 0,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Union{Nothing,Path}
     return search(
         initial_node = TimedNode(v = start, t = 1, h = h_func(start)),
@@ -25,5 +29,6 @@ function timed_pathfinding(;
         get_node_id = (S) -> "$(S.v)-$(S.t)",
         get_node_score = (S) -> S.f,
         backtrack = backtrack_single_agent,
+        deadline = deadline,
     )
 end

@@ -1,6 +1,10 @@
 module MAPPFD
 
 export
+    # utils
+    Deadline,
+    generate_deadline,
+    is_expired,
     # graph
     Graph,
     Vertex,

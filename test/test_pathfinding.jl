@@ -26,6 +26,25 @@
         @test path == [1, 1, 2, 3]
     end
 
+    @testset "timed_pathfinding timeout" begin
+        G = generate_sample_graph1()
+        path = timed_pathfinding(
+            G = G,
+            start = 1,
+            check_goal = (S) -> false,
+            deadline = generate_deadline(0.05),
+        )
+        @test isnothing(path)
+
+        path = timed_pathfinding(
+            G = G,
+            start = 1,
+            check_goal = (S) -> false,
+            time_limit_sec = 0.1,
+        )
+        @test isnothing(path)
+    end
+
     @testset "basic_pathfinding" begin
         start = 4
         goal = 5

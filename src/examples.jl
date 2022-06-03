@@ -6,6 +6,8 @@ function astar_operator_decomposition(
     constraints::Vector{Effect},
     offset::Int;
     dist_tables::Vector{Vector{Int}} = MAPF.get_distance_tables(G, goals),
+    deadline::Union{Nothing,Deadline} = nothing,
+    VERBOSE::Int = 0,
 )::Union{Nothing,Paths}
 
     N = length(starts)
@@ -36,5 +38,6 @@ function astar_operator_decomposition(
         get_node_id = (S) -> string(S),
         get_node_score = (S) -> S.f,
         backtrack = MAPF.backtrack_AOD,
+        deadline = deadline,
     )
 end
