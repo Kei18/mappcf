@@ -35,6 +35,14 @@
             deadline = generate_deadline(0.05),
         )
         @test isnothing(path)
+
+        path = timed_pathfinding(
+            G = G,
+            start = 1,
+            check_goal = (S) -> false,
+            time_limit_sec = 0.1,
+        )
+        @test isnothing(path)
     end
 
     @testset "basic_pathfinding" begin

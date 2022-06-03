@@ -12,7 +12,10 @@ function basic_pathfinding(;
     goal::Int,
     invalid::Function = (S_from, S_to) -> false,
     h_func = (u) -> 0,
-    deadline::Union{Nothing,Deadline} = nothing,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Union{Nothing,Path}
     return search(
         initial_node = BasicNode(v = start, h = h_func(start)),

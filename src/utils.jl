@@ -36,7 +36,9 @@ function search(;
     get_node_id::Function,         # (T) -> Any
     get_node_score::Function,      # (T) -> Real
     backtrack::Function,           # (T) -> Any
-    deadline::Union{Nothing,Deadline} = nothing,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
 )
 
     OPEN = PriorityQueue{SearchNode,Real}()

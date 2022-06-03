@@ -15,7 +15,10 @@ function astar_operator_decomposition(
     starts::Config,
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
-    deadline::Union{Nothing,Deadline} = nothing,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Union{Nothing,Paths}
     return search(
         initial_node = get_initial_AODNode(starts, dist_tables),

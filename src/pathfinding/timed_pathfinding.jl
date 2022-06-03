@@ -13,7 +13,10 @@ function timed_pathfinding(;
     check_goal::Function,
     invalid::Function = (S_from, S_to) -> false,
     h_func::Function = (u) -> 0,
-    deadline::Union{Nothing,Deadline} = nothing,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Union{Nothing,Path}
     return search(
         initial_node = TimedNode(v = start, t = 1, h = h_func(start)),

@@ -3,7 +3,10 @@ function planner2(
     ins::SyncInstance;
     multi_agent_path_planner::Function,
     VERBOSE::Int = 0,
-    deadline::Union{Nothing,Deadline} = nothing,
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    kwargs...,
 )::Solution
     return flatten_recursive_solution(
         planner2(
