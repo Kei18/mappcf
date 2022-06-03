@@ -14,7 +14,7 @@ function astar_operator_decomposition(
     G::Graph,
     starts::Config,
     goals::Config;
-    dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    h_func = gen_h_func(G, goals),
     timestep_limit::Union{Nothing,Int} = nothing,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
@@ -22,10 +22,10 @@ function astar_operator_decomposition(
     kwargs...,
 )::Union{Nothing,Paths}
     return search(
-        initial_node = get_initial_AODNode(starts, dist_tables),
+        initial_node = get_initial_AODNode(starts, h_func),
         invalid = gen_invalid_AOD(goals; timestep_limit = timestep_limit),
         check_goal = (S) -> S.Q == goals && S.next == 1,
-        get_node_neighbors = gen_get_node_neighbors_AOD(G, goals, dist_tables),
+        get_node_neighbors = gen_get_node_neighbors_AOD(G, goals, h_func),
         get_node_id = (S) -> string(S),
         get_node_score = (S) -> S.f,
         backtrack = backtrack_AOD,
@@ -33,9 +33,9 @@ function astar_operator_decomposition(
     )
 end
 
-function get_initial_AODNode(starts::Config, dist_tables::Vector{Vector{Int}})::AODNode
+function get_initial_AODNode(starts::Config, h_func::Function)::AODNode
     Q_init = copy(starts)
-    h_init = sum(i -> dist_tables[i][Q_init[i]], 1:length(starts))
+    h_init = sum(i -> h_func(i)(Q_init[i]), 1:length(starts))
     return AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
 end
 
@@ -107,7 +107,7 @@ end
 function gen_get_node_neighbors_AOD(
     G::Graph,
     goals::Config,
-    dist_tables::Vector{Vector{Int}},
+    h_func::Function,
     fixed_agents::Vector{Int} = Vector{Int}(),
 )::Function
 
@@ -124,7 +124,7 @@ function gen_get_node_neighbors_AOD(
                 Q_prev = (j == 1) ? copy(S.Q) : copy(S.Q_prev),
                 next = j,
                 g = (v_to == goals[i]) ? S.g : S.g + 1,  # minimize time not at goal
-                h = S.h - dist_tables[i][v_from] + dist_tables[i][v_to],
+                h = S.h - h_func(i)(v_from) + h_func(i)(v_to),
                 parent = S,
                 timestep = timestep,
             ),

@@ -1,10 +1,21 @@
 module Pathfinding
 
-export get_distance_table, timed_pathfinding, basic_pathfinding
+export get_distance_table,
+    get_distance_tables, timed_pathfinding, basic_pathfinding, gen_h_func
 
 import Base: @kwdef
 import ..MAPPFD:
-    Graph, get_neighbors, Path, Config, search, SearchNode, Deadline, generate_deadline
+    Graph,
+    get_neighbors,
+    Path,
+    Config,
+    search,
+    SearchNode,
+    Deadline,
+    generate_deadline,
+    Instance,
+    SyncInstance,
+    SeqInstance
 import DataStructures: Queue, PriorityQueue, enqueue!, dequeue!
 
 include("./utils.jl")

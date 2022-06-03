@@ -5,7 +5,7 @@ function astar_operator_decomposition(
     crashes::Vector{Crash},
     constraints::Vector{Effect},
     offset::Int;
-    dist_tables::Vector{Vector{Int}} = MAPF.get_distance_tables(G, goals),
+    h_func = gen_h_func(G, goals),
     deadline::Union{Nothing,Deadline} = nothing,
     timestep_limit::Union{Nothing,Int} = nothing,
     VERBOSE::Int = 0,
@@ -29,13 +29,13 @@ function astar_operator_decomposition(
     )
 
     return search(
-        initial_node = MAPF.get_initial_AODNode(starts, dist_tables),
+        initial_node = MAPF.get_initial_AODNode(starts, h_func),
         invalid = invalid,
         check_goal = (S) -> all(i -> S.Q[i] == goals[i], correct_agents) && S.next == 1,
         get_node_neighbors = MAPF.gen_get_node_neighbors_AOD(
             G,
             goals,
-            dist_tables,
+            h_func,
             crashed_agents,
         ),
         get_node_id = (S) -> string(S),

@@ -2,7 +2,7 @@ function prioritized_planning(
     G::Graph,
     starts::Config,
     goals::Config;
-    dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    h_func::Function = gen_h_func(G, goals),
     timestep_limit::Union{Nothing,Real} = nothing,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
@@ -13,9 +13,6 @@ function prioritized_planning(
     paths = map(i -> Path(), 1:N)
 
     for i = 1:N
-
-        h_func = (v) -> dist_tables[i][v]
-
         invalid =
             (S_from, S_to) -> begin
                 # TODO: optimize this procedure
@@ -43,7 +40,7 @@ function prioritized_planning(
             start = starts[i],
             check_goal = (S) -> S.v == goals[i],
             invalid = invalid,
-            h_func = h_func,
+            h_func = h_func(i),
             deadline = deadline,
             timestep_limit = timestep_limit,
         )
