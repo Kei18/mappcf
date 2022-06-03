@@ -73,10 +73,10 @@ function add_event!(
     nothing
 end
 
-function astar_operator_decomposition(ins::SyncInstance)::Paths
-    return astar_operator_decomposition(ins.G, ins.starts, ins.goals)
+function astar_operator_decomposition(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return astar_operator_decomposition(ins.G, ins.starts, ins.goals; kwargs...)
 end
 
-function seq_prioritized_planning(ins::SeqInstance)::Paths
-    return seq_prioritized_planning(ins.G, ins.starts, ins.goals)
+function seq_prioritized_planning(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return seq_prioritized_planning(ins.G, ins.starts, ins.goals; kwargs...)
 end

@@ -8,7 +8,7 @@ function parse_fn(config::Dict)::Function
     end
     delete!(params, Symbol("_target_"))
     target = Meta.parse(config["_target_"])
-    return (args...) -> eval(target)(args...; params...)
+    return (args...; kwargs...) -> eval(target)(args...; params..., kwargs...)
 end
 
 function prepare_exp!(config_file::String, label::String = "exp")::Tuple{String,Dict}

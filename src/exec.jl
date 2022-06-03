@@ -292,7 +292,7 @@ end
 function approx_verify(
     exec::Function,
     ins::Instance,
-    solution::Solution;
+    solution::Union{Nothing,Solution};
     num_repetition::Int = 20,
     kwargs...,
 )::Bool

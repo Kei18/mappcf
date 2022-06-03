@@ -15,6 +15,7 @@ function astar_operator_decomposition(
     starts::Config,
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    timestep_limit::Union{Nothing,Int} = nothing,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
@@ -22,7 +23,7 @@ function astar_operator_decomposition(
 )::Union{Nothing,Paths}
     return search(
         initial_node = get_initial_AODNode(starts, dist_tables),
-        invalid = gen_invalid_AOD(goals),
+        invalid = gen_invalid_AOD(goals; timestep_limit = timestep_limit),
         check_goal = (S) -> S.Q == goals && S.next == 1,
         get_node_neighbors = gen_get_node_neighbors_AOD(G, goals, dist_tables),
         get_node_id = (S) -> string(S),
@@ -40,6 +41,7 @@ end
 
 function gen_invalid_AOD(
     goals::Config;
+    timestep_limit::Union{Nothing,Real} = nothing,
     correct_agents::Vector{Int} = collect(1:length(goals)),
     additional_constraints::Union{Nothing,Function} = nothing,
 )::Function
@@ -48,6 +50,8 @@ function gen_invalid_AOD(
     correct_agents_goals = map(i -> goals[i], correct_agents)
 
     return (S_from::AODNode, S_to::AODNode) -> begin
+        !isnothing(timestep_limit) && S_to.timestep > timestep_limit && return true
+
         i = S_from.next
         v_i_from = S_to.Q[i]
         v_i_to = S_to.Q[i]

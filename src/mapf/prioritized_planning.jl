@@ -3,6 +3,7 @@ function prioritized_planning(
     starts::Config,
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    timestep_limit::Union{Nothing,Real} = nothing,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
@@ -44,6 +45,7 @@ function prioritized_planning(
             invalid = invalid,
             h_func = h_func,
             deadline = deadline,
+            timestep_limit = timestep_limit,
         )
 
         # failure case

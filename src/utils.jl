@@ -39,6 +39,7 @@ function search(;
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    kwargs...,
 )
 
     OPEN = PriorityQueue{SearchNode,Real}()
