@@ -5,7 +5,8 @@ Multi-Agent Path Planning with Failure Detectors
 
 ## TODO
 - [ ] efficiently reuse heuristics function
-- [ ] organize eval.jl
+- [ ] pre-compile
+- [ ] concurrent
 
 ## Setup
 
@@ -37,6 +38,13 @@ adding auto formatting with commit
 ```sh
 git config core.hooksPath .githooks
 chmod a+x .githooks/pre-commit
+```
+
+#### generating benchmarks
+```sh
+julia --project=.
+> include("./scripts/benchmark_gen.jl")
+> benchmark_gen("./scripts/config/benchamrk/basic.yaml")
 ```
 
 ## Reproduction
