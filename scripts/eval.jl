@@ -50,6 +50,7 @@ function main(config_file::String)
                 )
                 if !is_pre_compile &&
                    Threads.nthreads() == 1 &&
+                   !isnothing(solution) &&
                    get(config, "save_plot", false)
                     plot_solution(ins, solution; show_vertex_id = true, show_agent_id = true)
                     safe_savefig!("$(root_dir)/solution_$(solver_name)-$(l)_$(k).pdf")

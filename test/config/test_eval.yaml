@@ -14,6 +14,8 @@ instances:
 
 solvers:
   - _target_: MAPPFD.planner1
+    timestep_limit: 10
+    time_limit_sec: 2.0
     multi_agent_path_planner:
       _target_: MAPPFD.Solver.astar_operator_decomposition
 

@@ -16,6 +16,7 @@ function planner2(
             multi_agent_path_planner;
             VERBOSE = VERBOSE,
             deadline = deadline,
+            kwargs...,
         ),
     )
 end
@@ -36,6 +37,7 @@ function planner2(
     parent_constrations::Vector{Effect} = Vector{Effect}();
     VERBOSE::Int = 0,
     deadline::Union{Nothing,Deadline} = nothing,
+    kwargs...,
 )::Union{Nothing,RecursiveSolution}
 
     constraints = copy(parent_constrations)
@@ -53,6 +55,7 @@ function planner2(
         offset;
         deadline = deadline,
         VERBOSE = VERBOSE - 1,
+        kwargs...,
     )
     isnothing(paths) && return nothing
 

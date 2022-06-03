@@ -7,7 +7,9 @@ function astar_operator_decomposition(
     offset::Int;
     dist_tables::Vector{Vector{Int}} = MAPF.get_distance_tables(G, goals),
     deadline::Union{Nothing,Deadline} = nothing,
+    timestep_limit::Union{Nothing,Int} = nothing,
     VERBOSE::Int = 0,
+    kwargs...,
 )::Union{Nothing,Paths}
 
     N = length(starts)
@@ -17,6 +19,7 @@ function astar_operator_decomposition(
     invalid = MAPF.gen_invalid_AOD(
         goals;
         correct_agents = correct_agents,
+        timestep_limit = timestep_limit,
         additional_constraints = (S_from::MAPF.AODNode, S_to::MAPF.AODNode) -> begin
             i = S_from.next
             v = S_to.Q[i]
