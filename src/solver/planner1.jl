@@ -3,6 +3,7 @@ function planner1(
     ;
     multi_agent_path_planner::Function,  # (Instance) -> Paths
     VERBOSE::Int = 0,
+    deadline::Union{Nothing,Deadline} = nothing,
 )::Union{Nothing,Solution}
     # get initial solution
     solution = get_initial_solution(ins, multi_agent_path_planner)
@@ -13,6 +14,7 @@ function planner1(
 
     # main loop
     while !isempty(U)
+        is_expired(deadline) && return nothing
         event = popfirst!(U)
         # compute backup paths
         backup_plan = find_backup_plan(ins, solution, event)

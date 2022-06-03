@@ -13,7 +13,10 @@ import ..MAPPFD:
     timed_pathfinding,
     search,
     SearchNode,
-    check_valid_transition
+    check_valid_transition,
+    Deadline,
+    generate_deadline,
+    is_expired
 
 include("./utils.jl")
 include("./prioritized_planning.jl")

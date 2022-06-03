@@ -18,7 +18,7 @@ function register!(table::FragmentTable, fragment::Fragment)::Nothing
     nothing
 end
 
-function register!(table::FragmentTable, i::Int, path::Path)::Nothing
+function register!(table::FragmentTable, i::Int, path::Path;)::Nothing
     for k = 1:length(path)-1
         u = path[k]    # from
         v = path[k+1]  # to

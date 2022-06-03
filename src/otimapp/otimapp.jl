@@ -14,7 +14,10 @@ import ..MAPPFD:
     get_in_range,
     search,
     SearchNode,
-    basic_pathfinding
+    basic_pathfinding,
+    Deadline,
+    generate_deadline,
+    is_expired
 
 include("./fragment.jl")
 include("./prioritized_planning.jl")

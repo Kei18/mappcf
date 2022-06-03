@@ -3,6 +3,7 @@ function prioritized_planning(
     starts::Config,
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    deadline::Union{Nothing,Deadline} = nothing,
 )::Union{Nothing,Paths}
     N = length(starts)
     paths = map(i -> Path(), 1:N)
@@ -39,6 +40,7 @@ function prioritized_planning(
             check_goal = (S) -> S.v == goals[i],
             invalid = invalid,
             h_func = h_func,
+            deadline = deadline,
         )
 
         # failure case

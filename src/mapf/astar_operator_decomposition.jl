@@ -15,6 +15,7 @@ function astar_operator_decomposition(
     starts::Config,
     goals::Config;
     dist_tables::Vector{Vector{Int}} = get_distance_tables(G, goals),
+    deadline::Union{Nothing,Deadline} = nothing,
 )::Union{Nothing,Paths}
     return search(
         initial_node = get_initial_AODNode(starts, dist_tables),
@@ -24,6 +25,7 @@ function astar_operator_decomposition(
         get_node_id = (S) -> string(S),
         get_node_score = (S) -> S.f,
         backtrack = backtrack_AOD,
+        deadline = deadline,
     )
 end
 

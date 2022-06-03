@@ -22,7 +22,6 @@ function main(config_file::String)
 
     @info("start solving with $(Threads.nthreads()) threads")
 
-    # cnt_fin = 0
     result = Array{Any}(undef, num_total_tasks)
     cnt_fin = Threads.Atomic{Int}(0)
     loops = collect(
