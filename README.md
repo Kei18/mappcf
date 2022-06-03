@@ -47,6 +47,11 @@ julia --project=.
 > benchmark_gen("./scripts/config/benchamrk/basic.yaml")
 ```
 
+#### evaluation
+```sh
+julia --project=. --threads=auto -e "include(\"./scripts/eval.jl\"); main(\"./scripts/config/exp/basic.yaml\")"
+```
+
 ## Reproduction
 
 ## Notes
