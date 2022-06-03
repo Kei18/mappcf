@@ -25,6 +25,17 @@ function get_distance_table(G::Graph, goal::Int)::Vector{Int}
     return table
 end
 
+function get_distance_tables(G::Graph, goals::Config)::Vector{Vector{Int}}
+    return map(g -> get_distance_table(G, g), goals)
+end
+
+function gen_h_func(G::Graph, goals::Config)::Function
+    dist_tables = get_distance_tables(G, goals)
+    return (i) -> begin
+        (v) -> dist_tables[i][v]
+    end
+end
+
 function is_valid_path(path::Path, G::Graph, start::Int, goal::Int; VERBOSE::Int = 0)::Bool
     if first(path) != start
         VERBOSE > 0 && @warn("invalid start")

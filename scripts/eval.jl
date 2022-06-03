@@ -45,7 +45,7 @@ function main(config_file::String)
                     solver = solver_name,
                     solver_index = l,
                     solved = !isnothing(solution),
-                    verfification = verification,
+                    verification = verification,
                     comp_time = t_planning,
                 )
                 if !is_pre_compile &&

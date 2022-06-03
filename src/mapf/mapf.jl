@@ -8,7 +8,6 @@ import ..MAPPFD:
     Path,
     Paths,
     Config,
-    get_distance_table,
     get_in_range,
     timed_pathfinding,
     search,
@@ -16,7 +15,8 @@ import ..MAPPFD:
     check_valid_transition,
     Deadline,
     generate_deadline,
-    is_expired
+    is_expired,
+    gen_h_func
 
 include("./utils.jl")
 include("./prioritized_planning.jl")

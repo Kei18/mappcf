@@ -10,14 +10,14 @@ import ..MAPPFD:
     Path,
     Paths,
     Config,
-    get_distance_table,
     get_in_range,
     search,
     SearchNode,
     basic_pathfinding,
     Deadline,
     generate_deadline,
-    is_expired
+    is_expired,
+    gen_h_func
 
 include("./fragment.jl")
 include("./prioritized_planning.jl")

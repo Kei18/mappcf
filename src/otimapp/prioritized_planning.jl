@@ -2,7 +2,7 @@ function prioritized_planning(
     G::Graph,
     starts::Config,
     goals::Config;
-    dist_tables::Vector{Vector{Int}} = map(g -> get_distance_table(G, g), goals),
+    h_func = gen_h_func(G, goals),
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
@@ -16,8 +16,6 @@ function prioritized_planning(
     table = FragmentTable()
 
     for i = 1:N
-
-        h_func = (v) -> dist_tables[i][v]
 
         invalid =
             (S_from, S_to) -> begin
@@ -33,7 +31,7 @@ function prioritized_planning(
             start = starts[i],
             goal = goals[i],
             invalid = invalid,
-            h_func = h_func,
+            h_func = h_func(i),
             deadline = deadline,
         )
 

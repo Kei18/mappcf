@@ -34,7 +34,3 @@ function is_valid_mapf_solution(
 
     return true
 end
-
-function get_distance_tables(G::Graph, goals::Config)::Vector{Vector{Int}}
-    return map(g -> get_distance_table(G, g), goals)
-end
