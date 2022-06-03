@@ -12,11 +12,16 @@ instances:
   height: 8
   occupancy_rate: 0.05
 
+solvers_common: &solvers_common
+  time_limit_sec: 3
+
 solvers:
   - _target_: MAPPFD.planner1
+    <<: *solvers_common
     multi_agent_path_planner:
       _target_: MAPPFD.Solver.astar_operator_decomposition
   - _target_: MAPPFD.planner1
+    <<: *solvers_common
     multi_agent_path_planner:
       _target_: MAPPFD.Solver.astar_operator_decomposition
 
