@@ -36,6 +36,14 @@ function gen_h_func(G::Graph, goals::Config)::Function
     end
 end
 
+function gen_h_func(ins::SyncInstance)::Function
+    return gen_h_func(ins.G, ins.goals)
+end
+
+function gen_h_func(ins::SeqInstance)::Function
+    return gen_h_func(ins.G, ins.goals)
+end
+
 function is_valid_path(path::Path, G::Graph, start::Int, goal::Int; VERBOSE::Int = 0)::Bool
     if first(path) != start
         VERBOSE > 0 && @warn("invalid start")

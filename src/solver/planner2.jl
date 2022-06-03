@@ -6,6 +6,7 @@ function planner2(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    h_func = gen_h_func(ins),
     kwargs...,
 )::Solution
     return flatten_recursive_solution(
@@ -16,6 +17,7 @@ function planner2(
             multi_agent_path_planner;
             VERBOSE = VERBOSE,
             deadline = deadline,
+            h_func = h_func,
             kwargs...,
         ),
     )
@@ -37,6 +39,7 @@ function planner2(
     parent_constrations::Vector{Effect} = Vector{Effect}();
     VERBOSE::Int = 0,
     deadline::Union{Nothing,Deadline} = nothing,
+    h_func::Function = gen_h_func(G, goals),
     kwargs...,
 )::Union{Nothing,RecursiveSolution}
 
@@ -54,6 +57,7 @@ function planner2(
         constraints,
         offset;
         deadline = deadline,
+        h_func = h_func,
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
@@ -72,7 +76,11 @@ function planner2(
             multi_agent_path_planner,
             vcat(crashes, event.crash),
             event.crash.when,
-            constraints,
+            constraints;
+            h_func = h_func,
+            VERBOSE = VERBOSE,
+            deadline = deadline,
+            kwargs...,
         )
         # failed to find backup path
         if isnothing(backup[event.crash])

@@ -5,7 +5,17 @@ export get_distance_table,
 
 import Base: @kwdef
 import ..MAPPFD:
-    Graph, get_neighbors, Path, Config, search, SearchNode, Deadline, generate_deadline
+    Graph,
+    get_neighbors,
+    Path,
+    Config,
+    search,
+    SearchNode,
+    Deadline,
+    generate_deadline,
+    Instance,
+    SyncInstance,
+    SeqInstance
 import DataStructures: Queue, PriorityQueue, enqueue!, dequeue!
 
 include("./utils.jl")

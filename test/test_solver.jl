@@ -1,6 +1,5 @@
 @testset verbose = true "solver" begin
     @testset "planner1 sync" begin
-        import MAPPFD.MAPF: astar_operator_decomposition
         ins = generate_sample_sync_instance4()
         solution = MAPPFD.planner1(
             ins;

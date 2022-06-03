@@ -6,6 +6,7 @@ function planner1(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    h_func = gen_h_func(ins),
     kwargs...,
 )::Union{Nothing,Solution}
     # get initial solution
@@ -13,6 +14,7 @@ function planner1(
         ins,
         multi_agent_path_planner;
         deadline = deadline,
+        h_func = h_func,
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
@@ -26,7 +28,14 @@ function planner1(
         is_expired(deadline) && return nothing
         event = popfirst!(U)
         # compute backup paths
-        backup_plan = find_backup_plan(ins, solution, event; deadline = deadline, kwargs...)
+        backup_plan = find_backup_plan(
+            ins,
+            solution,
+            event;
+            deadline = deadline,
+            h_func = h_func,
+            kwargs...,
+        )
         isnothing(backup_plan) && return nothing
         register!(solution, event, backup_plan)
         # append new intersections
@@ -41,10 +50,16 @@ function get_initial_solution(
     ;
     VERBOSE::Int = 0,
     deadline::Union{Nothing,Deadline} = nothing,
+    h_func::Function = gen_h_func(ins),
     kwargs...,
 )::Union{Solution,Nothing}
-    primary_paths =
-        multi_agent_path_planner(ins; VERBOSE = VERBOSE, deadline = deadline, kwargs...)
+    primary_paths = multi_agent_path_planner(
+        ins;
+        VERBOSE = VERBOSE,
+        deadline = deadline,
+        h_func = h_func,
+        kwargs...,
+    )
     isnothing(primary_paths) && return nothing
     N = length(primary_paths)
     return map(i -> [Plan(id = 1, who = i, path = primary_paths[i], offset = 1)], 1:N)
@@ -140,6 +155,7 @@ function find_backup_plan(
     solution::Solution,
     event::Event;
     deadline::Union{Nothing,Deadline} = nothing,
+    h_func::Function = gen_h_func(ins),
     kwargs...,
 )::Union{Nothing,Plan}
     N = length(solution)
@@ -179,6 +195,7 @@ function find_backup_plan(
         start = s,
         goal = g,
         invalid = invalid,
+        h_func = h_func(i),
         deadline = deadline,
     )
     isnothing(path) && return nothing
@@ -196,6 +213,7 @@ function find_backup_plan(
     ;
     deadline::Union{Nothing,Deadline} = nothing,
     timestep_limit::Union{Nothing,Int} = nothing,
+    h_func::Function = gen_h_func(ins),
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -242,6 +260,7 @@ function find_backup_plan(
         check_goal = (S) -> S.v == ins.goals[i],
         invalid = invalid,
         deadline = deadline,
+        h_func = h_func(i),
     )
     isnothing(path) && return nothing
     path = vcat(original_plan_i.path[1:offset-1], path)
