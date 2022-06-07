@@ -59,6 +59,10 @@ function remove_edges!(G::Graph, edges...)::Nothing
     end
 end
 
+function get_num_vertices(G::Graph)::Int
+    return length(filter(v -> length(v.neigh) > 0, G))
+end
+
 function generate_random_grid(
     width::Int = 8,
     height::Int = 8;
@@ -125,4 +129,45 @@ function get_traveling_time(path::Path)::Int
         i -= 1
     end
     return i
+end
+
+function mapf_bench_loader(filename::String)::Graph
+    @assert(isfile(filename), "$filename does not exist")
+    G, height, width = nothing, 0, 0
+    y = 0
+
+    open(filename, "r") do f
+        for row in strip.(readlines(f))
+
+            if height > 0 && width > 0 && isnothing(G)
+                G = generate_grid(width, height)
+            end
+
+            m = match(r"height\s(\d+)", row)
+            if !isnothing(m)
+                height = parse(Int, m[1])
+                y = height
+                continue
+            end
+
+            m = match(r"width\s(\d+)", row)
+            if !isnothing(m)
+                width = parse(Int, m[1])
+                continue
+            end
+
+            m = match(r"([.@T]+)", row)
+            if !isnothing(m)
+                for x in findall(s -> s != '.', row)
+                    id = x + (y - 1) * width
+                    x != 1 && remove_edges!(G, (id, id - 1))
+                    x != width && remove_edges!(G, (id, id + 1))
+                    y != 1 && remove_edges!(G, (id, id - width))
+                    y != height && remove_edges!(G, (id, id + width))
+                end
+                y -= 1
+            end
+        end
+    end
+    return G
 end

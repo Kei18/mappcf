@@ -26,7 +26,7 @@ function plot_init()
     )
 end
 
-function plot_graph!(G::Graph; show_vertex_id::Bool = false)
+function plot_graph!(G::Graph; show_vertex_id::Bool = false, markersize::Real = 12)
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
@@ -46,22 +46,33 @@ function plot_graph!(G::Graph; show_vertex_id::Bool = false)
     X = positions[1, :]
     Y = positions[2, :]
     # ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
-    scatter!(X, Y, label = nothing, markersize = 12, color = :white)
+    scatter!(X, Y, label = nothing, markersize = markersize, color = :white)
     show_vertex_id && annotate!(X, Y, map(v -> (v.id, 6, :black, :bottom), _G))
 
     return plot!()
 end
 
-function plot_graph(G::Graph; show_vertex_id::Bool = false)
+function plot_graph(args...; kwargs...)
     plot_init()
-    return plot_graph!(G; show_vertex_id = show_vertex_id)
+    return plot_graph!(args...; kwargs...)
 end
 
-function plot_locs!(G::Graph, config::Config; show_agent_id::Bool = false)
+function plot_locs!(
+    G::Graph,
+    config::Config;
+    markersize::Real = 12,
+    show_agent_id::Bool = false,
+)
     positions = hcat(map(k -> get(G, k).pos, config)...)
     X = positions[1, :]
     Y = positions[2, :]
-    scatter!(X, Y, color = get_colors(length(config)), marker = (12, 1.0), label = nothing)
+    scatter!(
+        X,
+        Y,
+        color = get_colors(length(config)),
+        marker = (markersize, 1.0),
+        label = nothing,
+    )
     show_agent_id && annotate!(X, Y, map(k -> (k, 6, :black, :top), 1:length(config)))
 end
 
@@ -86,9 +97,10 @@ function plot_instance(
     goals::Config;
     show_agent_id::Bool = false,
     show_vertex_id::Bool = false,
+    markersize::Real = 12,
 )
-    plot_graph(G; show_vertex_id = show_vertex_id)
-    plot_locs!(G, starts; show_agent_id = show_agent_id)
+    plot_graph(G; show_vertex_id = show_vertex_id, markersize = markersize)
+    plot_locs!(G, starts; show_agent_id = show_agent_id, markersize = markersize)
     plot_goals!(G, goals)
     return plot!()
 end
@@ -135,6 +147,7 @@ function plot_paths(
     show_agent_id::Bool = false,
     linewidth::Real = 2,
     δ = 0.02,
+    markersize::Real = 12,
 )
     plot_instance(
         G,
@@ -142,6 +155,7 @@ function plot_paths(
         map(last, paths);
         show_agent_id = show_agent_id,
         show_vertex_id = show_vertex_id,
+        markersize = markersize,
     )
     for (i, path) in enumerate(paths)
         δ_fixed = rand() * 2δ - δ

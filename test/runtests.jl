@@ -1,9 +1,9 @@
 using Test
 import Random: seed!
 using MAPPFD
-include("../scripts/instance_examples.jl")
+include(joinpath(@__DIR__, "../scripts/instance_examples.jl"))
 
-const DIRNAME = "./local"
+const DIRNAME = joinpath(@__DIR__, "local")
 isdir(DIRNAME) && rm(DIRNAME, recursive = true)
 
 macro test_savefig(name::String)
