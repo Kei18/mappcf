@@ -44,3 +44,73 @@ function astar_operator_decomposition(
         deadline = deadline,
     )
 end
+
+function get_path_length(plan::Plan)::Int
+    return get_path_length(plan.path)
+end
+
+function get_traveling_time(plan::Plan)::Int
+    return get_traveling_time(plan.path)
+end
+
+function get_scores(solution::Union{Nothing,Solution})::Dict{Symbol,Int}
+
+    primary_sum_of_path_length = 0
+    primary_max_path_length = 0
+    primary_sum_of_traveling_time = 0
+    primary_max_traveling_time = 0
+
+    worst_sum_of_path_length = 0
+    worst_max_path_length = 0
+    worst_sum_of_traveling_time = 0
+    worst_max_traveling_time = 0
+
+    if !isnothing(solution)
+        for plans in solution
+            # primary path
+            primary_plan = first(plans)
+            path_length = get_path_length(primary_plan)
+            traveling_time = get_traveling_time(primary_plan)
+            primary_sum_of_path_length += path_length
+            primary_max_path_length = max(primary_max_path_length, path_length)
+            primary_sum_of_traveling_time += traveling_time
+            primary_max_traveling_time = max(primary_max_traveling_time, traveling_time)
+
+            # worst case
+            arr_path_length = map(get_path_length, plans)
+            arr_traveling_time = map(get_traveling_time, plans)
+            path_length = maximum(arr_path_length)
+            traveling_time = maximum(arr_traveling_time)
+            worst_sum_of_path_length += path_length
+            worst_max_path_length = max(worst_max_path_length, path_length)
+            worst_sum_of_traveling_time += traveling_time
+            worst_max_traveling_time = max(worst_max_traveling_time, traveling_time)
+        end
+    end
+
+    return Dict(
+        :worst_max_path_length => worst_max_path_length,
+        :worst_sum_of_path_length => worst_sum_of_path_length,
+        :worst_max_traveling_time => worst_max_traveling_time,
+        :worst_sum_of_traveling_time => worst_sum_of_traveling_time,
+        #
+        :primary_max_path_length => primary_max_path_length,
+        :primary_sum_of_path_length => primary_sum_of_path_length,
+        :primary_max_traveling_time => primary_max_traveling_time,
+        :primary_sum_of_traveling_time => primary_sum_of_traveling_time,
+    )
+end
+
+function get_scores(ins::Instance, solution::Union{Nothing,Solution})::Dict{Symbol,Int}
+    N = length(ins.starts)
+    tables = get_distance_tables(ins.G, ins.goals)
+    arr_shortest_path_length = map(i -> tables[i][ins.starts[i]], 1:N)
+
+    return merge(
+        Dict(
+            :sum_of_shortest_path_lengths => sum(arr_shortest_path_length),
+            :max_shortest_path_lengths => maximum(arr_shortest_path_length),
+        ),
+        get_scores(solution),
+    )
+end

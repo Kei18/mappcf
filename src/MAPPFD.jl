@@ -29,6 +29,7 @@ export
     SeqCrash,
     Plan,
     Solution,
+    get_scores,
     # execution
     execute_with_local_FD,
     execute_with_global_FD,
