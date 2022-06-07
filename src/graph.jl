@@ -107,3 +107,22 @@ function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
         end
     end
 end
+
+function get_path_length(path::Path)::Int
+    cost = 0
+    v_pre = first(path)
+    for v in path
+        v_pre == v && continue
+        cost += 1
+        v_pre = v
+    end
+    return cost
+end
+
+function get_traveling_time(path::Path)::Int
+    i = length(path) - 1
+    while i >= 1 && path[i] == last(path)
+        i -= 1
+    end
+    return i
+end

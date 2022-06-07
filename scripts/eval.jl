@@ -47,6 +47,7 @@ function main(config_file::String)
                     solved = !isnothing(solution),
                     verification = verification,
                     comp_time = t_planning,
+                    (; get_scores(ins, solution)...)...,
                 )
                 if !is_pre_compile &&
                    Threads.nthreads() == 1 &&

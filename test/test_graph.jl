@@ -8,4 +8,14 @@
         G = generate_random_grid(10, 10; occupancy_rate = 0.1)
         @test length(filter(v -> length(v.neigh) > 0, G)) <= 90
     end
+
+    @testset "cost evaluation" begin
+        path = [1, 2, 2, 3, 4, 4]
+        @test MAPPFD.get_path_length(path) == 3
+        @test MAPPFD.get_traveling_time(path) == 4
+
+        path = [1]
+        @test MAPPFD.get_path_length(path) == 0
+        @test MAPPFD.get_traveling_time(path) == 0
+    end
 end
