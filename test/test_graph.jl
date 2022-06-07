@@ -18,4 +18,10 @@
         @test MAPPFD.get_path_length(path) == 0
         @test MAPPFD.get_traveling_time(path) == 0
     end
+
+    @testset "mapf bench" begin
+        filename = joinpath(@__DIR__, "../assets/map/random-32-32-20.map")
+        G = MAPPFD.load_mapf_bench(filename)
+        @test MAPPFD.get_num_vertices(G) == 819
+    end
 end
