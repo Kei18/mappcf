@@ -131,7 +131,7 @@ function get_traveling_time(path::Path)::Int
     return i
 end
 
-function mapf_bench_loader(filename::String)::Graph
+function load_mapf_bench(filename::String)::Graph
     @assert(isfile(filename), "$filename does not exist")
     G, height, width = nothing, 0, 0
     y = 0

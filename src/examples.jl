@@ -108,7 +108,7 @@ function get_scores(ins::Instance, solution::Union{Nothing,Solution})::Dict{Symb
 
     return merge(
         Dict(
-            :num_vertices = get_num_vertices(ins.G),
+            :num_vertices => get_num_vertices(ins.G),
             :sum_of_shortest_path_lengths => sum(arr_shortest_path_length),
             :max_shortest_path_lengths => maximum(arr_shortest_path_length),
         ),

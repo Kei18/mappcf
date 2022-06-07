@@ -23,6 +23,8 @@ export
     generate_random_seq_instance_grid,
     generate_multiple_random_sync_instance_grid,
     generate_multiple_random_seq_instance_grid,
+    generate_multiple_random_sync_instance_grid_wellformed,
+    generate_multiple_random_seq_instance_grid_wellformed,
     # solution
     Crash,
     SyncCrash,

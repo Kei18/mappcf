@@ -21,7 +21,7 @@
 
     @testset "mapf bench" begin
         filename = joinpath(@__DIR__, "../assets/map/random-32-32-20.map")
-        G = MAPPFD.mapf_bench_loader(filename)
+        G = MAPPFD.load_mapf_bench(filename)
         @test MAPPFD.get_num_vertices(G) == 819
     end
 end
