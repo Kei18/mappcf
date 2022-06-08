@@ -18,6 +18,9 @@ macro update_crashes_sync_model!()
         quote
             (crashes::Vector{SyncCrash}, config::Config) -> begin
                 for c in scheduled_crashes
+                    !isnothing(ins.max_num_crashes) &&
+                        length(crashes) >= ins.max_num_crashes &&
+                        continue
                     c.when != current_timestep + 1 && continue
                     crashes in scheduled_crashes && continue
                     isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
@@ -27,6 +30,9 @@ macro update_crashes_sync_model!()
 
                 failure_prob == 0 && return
                 for i = 1:N
+                    !isnothing(ins.max_num_crashes) &&
+                        length(crashes) >= ins.max_num_crashes &&
+                        continue
                     is_crashed(crashes, i) && continue
                     rand() > failure_prob && continue
                     VERBOSE > 0 &&
@@ -263,6 +269,9 @@ function execute_with_local_FD(
     update_crashes! =
         (crashes::Vector{SeqCrash}, config::Config) -> begin
             for c in scheduled_crashes
+                !isnothing(ins.max_num_crashes) &&
+                    length(crashes) >= ins.max_num_crashes &&
+                    continue
                 config[c.who] != c.loc && continue
                 c in crashes && continue
                 isnothing(findfirst(i -> i == c.who && config[i] == c.loc, 1:N)) &&
@@ -272,6 +281,9 @@ function execute_with_local_FD(
 
             failure_prob == 0 && return
             for i = 1:N
+                !isnothing(ins.max_num_crashes) &&
+                    length(crashes) >= ins.max_num_crashes &&
+                    continue
                 is_crashed(crashes, i) && continue
                 rand() > failure_prob && continue
                 VERBOSE > 0 && @info("agent-$i is crashed at vertex-$(config[i])")
