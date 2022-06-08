@@ -16,7 +16,7 @@ function prepare_exp!(
     config_file::String,
     label::String = "exp",
     args...,
-)::Tuple{String,Dict}
+)::Union{Nothing,Tuple{String,Dict}}
     @assert(isfile(config_file), "$config_file does not exist")
     config = YAML.load_file(config_file)
 
@@ -25,14 +25,18 @@ function prepare_exp!(
         param_name, val = split(arg, "=")[1:2]
         keys = split(param_name, ".")
         C = config
-        for key in keys[1:end-1]
+        for (k, key) in enumerate(keys)
             if haskey(C, key)
-                C = C[key]
+                if k < length(keys)
+                    C = C[key]
+                end
             else
                 @error("$(config_file) does not have $(keys)")
                 return nothing
             end
         end
+
+        # parse
         val_parsed = tryparse(Int64, val)
         if isnothing(val_parsed)
             val_parsed = tryparse(Float64, val)
