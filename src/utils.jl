@@ -50,7 +50,6 @@ function search(;
 
     # main loop
     while !isempty(OPEN) && !is_expired(deadline)
-
         # pop
         S = dequeue!(OPEN)
         S_id = get_node_id(S)

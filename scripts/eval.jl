@@ -5,8 +5,8 @@ using MAPPFD
 import Base.Threads
 include("./utils.jl")
 
-function main(config_file::String)
-    res = prepare_exp!(config_file)
+function main(config_file::String, args...)
+    res = prepare_exp!(config_file, "exp", args...)
     isnothing(res) && return
     root_dir, config = res
 

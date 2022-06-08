@@ -182,16 +182,9 @@ function plot_solution(
     linewidth = 6,
     δ = 0.02,
     ϵ = 0.4,
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
+    kwargs...,
 )
-    plot_instance(
-        G,
-        starts,
-        goals;
-        show_agent_id = show_agent_id,
-        show_vertex_id = show_vertex_id,
-    )
+    plot_instance(G, starts, goals; kwargs...)
     isnothing(solution) && return plot!()
     N = length(starts)
     for i = 1:N

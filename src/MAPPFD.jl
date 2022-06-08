@@ -44,8 +44,10 @@ export
     plot_solution,
     safe_savefig!,
     plot_anim,
+    plot_paths,
     # others
-    MAPF
+    MAPF,
+    OTIMAPP
 
 import Random: seed!, randperm
 import Printf: @printf, @sprintf

@@ -1,5 +1,6 @@
 import YAML
 import Dates
+import JLD
 
 function parse_fn(config::Dict)::Function
     params = Dict()
@@ -37,6 +38,9 @@ function prepare_exp!(
             val_parsed = tryparse(Float64, val)
         end
         if isnothing(val_parsed)
+            val_parsed = tryparse(Bool, val)
+        end
+        if isnothing(val_parsed)
             val_parsed = val
         end
         C[keys[end]] = val_parsed
@@ -55,4 +59,14 @@ function prepare_exp!(
     )
     YAML.write_file(joinpath(root_dir, "config.yaml"), merge(config, additional_info))
     return (root_dir, config)
+end
+
+function load_benchmark(; name::String)::Union{Nothing,Vector{Instance}}
+    if isdir(name)
+        return JLD.load(joinpath(name, "benchmark.jld"))["instances"]
+    elseif isfile(name)
+        return JLD.load(name)["instances"]
+    end
+    @warn("neither file nor directory: $name")
+    nothing
 end

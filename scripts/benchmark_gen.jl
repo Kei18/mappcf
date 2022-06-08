@@ -21,13 +21,3 @@ function create_benchmark(config_file::String, args...)::Union{Nothing,String}
     JLD.save(joinpath(root_dir, "benchmark.jld"), "instances", instances)
     return root_dir
 end
-
-function load_benchmark(name::String)::Union{Nothing,Vector{Instance}}
-    if isdir(name)
-        return JLD.load(joinpath(name, "benchmark.jld"))["instances"]
-    elseif isfile(name)
-        return JLD.load(name)["instances"]
-    end
-    @warn("neither file nor directory: $name")
-    nothing
-end

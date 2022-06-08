@@ -19,7 +19,7 @@ function astar_operator_decomposition(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    kwargs...,
+    VERBOSE::Int = 0,
 )::Union{Nothing,Paths}
     return search(
         initial_node = get_initial_AODNode(starts, h_func),
@@ -30,6 +30,7 @@ function astar_operator_decomposition(
         get_node_score = (S) -> S.f,
         backtrack = backtrack_AOD,
         deadline = deadline,
+        VERBOSE = VERBOSE,
     )
 end
 
@@ -46,14 +47,13 @@ function gen_invalid_AOD(
     additional_constraints::Union{Nothing,Function} = nothing,
 )::Function
 
-    N = length(goals)
     correct_agents_goals = map(i -> goals[i], correct_agents)
 
     return (S_from::AODNode, S_to::AODNode) -> begin
         !isnothing(timestep_limit) && S_to.timestep > timestep_limit && return true
 
         i = S_from.next
-        v_i_from = S_to.Q[i]
+        v_i_from = S_from.Q[i]
         v_i_to = S_to.Q[i]
 
         # check collision
@@ -74,17 +74,6 @@ function gen_invalid_AOD(
 
         return false
     end
-end
-
-function invalid_AOD(S_from::AODNode, S_to::AODNode)::Bool
-    i = S_from.next
-    v_i_from = S_to.Q[i]
-    v_i_to = S_to.Q[i]
-    # avoid collision
-    return any(
-        j -> S_to.Q[j] == v_i_to || (S_to.Q[j] == v_i_from && S_to.Q_prev[j] == v_i_to),
-        1:i-1,
-    )
 end
 
 function backtrack_AOD(S::AODNode)::Paths
@@ -121,7 +110,7 @@ function gen_get_node_neighbors_AOD(
         return map(
             v_to -> AODNode(
                 Q = map(k -> k == i ? v_to : S.Q[k], 1:N),
-                Q_prev = (j == 1) ? copy(S.Q) : copy(S.Q_prev),
+                Q_prev = (i == 1) ? copy(S.Q) : copy(S.Q_prev),
                 next = j,
                 g = (v_to == goals[i]) ? S.g : S.g + 1,  # minimize time not at goal
                 h = S.h - h_func(i)(v_from) + h_func(i)(v_to),
