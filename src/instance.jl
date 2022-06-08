@@ -1,17 +1,37 @@
 abstract type Instance end
 
 # synchronous model
-struct SyncInstance <: Instance
+@kwdef struct SyncInstance <: Instance
     G::Graph
     starts::Config
     goals::Config
+    max_num_crashes::Union{Nothing,Int} = nothing
+end
+
+SyncInstance(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    max_num_crashes::Union{Nothing,Int} = nothing,
+) = begin
+    SyncInstance(G = G, starts = starts, goals = goals, max_num_crashes = max_num_crashes)
 end
 
 # sequential model
-struct SeqInstance <: Instance
+@kwdef struct SeqInstance <: Instance
     G::Graph
     starts::Config
     goals::Config
+    max_num_crashes::Union{Nothing,Int} = nothing
+end
+
+SeqInstance(
+    G::Graph,
+    starts::Config,
+    goals::Config,
+    max_num_crashes::Union{Nothing,Int} = nothing,
+) = begin
+    SeqInstance(G = G, starts = starts, goals = goals, max_num_crashes = max_num_crashes)
 end
 
 function generate_random_instance_grid(;

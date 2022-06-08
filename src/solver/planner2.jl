@@ -11,9 +11,8 @@ function planner2(
 )::Solution
     return flatten_recursive_solution(
         planner2(
-            ins.G,
+            ins,
             ins.starts,
-            ins.goals,
             multi_agent_path_planner;
             VERBOSE = VERBOSE,
             deadline = deadline,
@@ -30,16 +29,15 @@ end
 end
 
 function planner2(
-    G::Graph,
+    ins::Instance,
     starts::Config,
-    goals::Config,
     multi_agent_path_planner::Function,
     crashes::Vector{Crash} = Vector{Crash}(),
     offset::Int = 1,
     parent_constrations::Vector{Effect} = Vector{Effect}();
     VERBOSE::Int = 0,
     deadline::Union{Nothing,Deadline} = nothing,
-    h_func::Function = gen_h_func(G, goals),
+    h_func::Function = gen_h_func(ins.G, ins.goals),
     kwargs...,
 )::Union{Nothing,RecursiveSolution}
 
@@ -50,9 +48,9 @@ function planner2(
 
     # compute collision-free paths
     paths = multi_agent_path_planner(
-        G,
+        ins.G,
         starts,
-        goals,
+        ins.goals,
         crashes,
         constraints,
         offset;
@@ -64,15 +62,14 @@ function planner2(
     isnothing(paths) && return nothing
 
     # identify critical sections
-    U = get_new_unresolved_events(paths, offset)
+    U = is_no_more_crash(ins, crashes) ? [] : get_new_unresolved_events(paths, offset)
     # compute backup paths
     backup = Dict()
     for event in U
         # recursive call
         backup[event.crash] = planner2(
-            G,
+            ins,
             map(path -> get_in_range(path, event.crash.when - offset + 1), paths),
-            goals,
             multi_agent_path_planner,
             vcat(crashes, event.crash),
             event.crash.when,
