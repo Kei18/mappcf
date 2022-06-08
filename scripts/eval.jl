@@ -75,6 +75,13 @@ function main(config_file::String, args...)
         result = run(instances)
     end
     @info("done ($(elapsed_exp) sec), save result")
-    CSV.write(joinpath(root_dir, "result.csv"), result)
+    result_filename = joinpath(root_dir, "result.csv")
+    CSV.write(result_filename, result)
+
+    # stats
+    if haskey(config, "summary")
+        @info("compute stats")
+        foreach(c -> parse_fn(c)(result_filename), config["summary"])
+    end
     return :success
 end

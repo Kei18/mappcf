@@ -1,6 +1,9 @@
 import YAML
 import Dates
 import JLD
+using DataFrames
+using Query
+using Plots
 
 function parse_fn(config::Dict)::Function
     params = Dict()
@@ -72,5 +75,67 @@ function load_benchmark(; name::String)::Union{Nothing,Vector{Instance}}
         return JLD.load(name)["instances"]
     end
     @warn("neither file nor directory: $name")
+    nothing
+end
+
+function load_benchmark(name::String)::Union{Nothing,Vector{Instance}}
+    return load_benchmark(; name = name)
+end
+
+function plot_cactus(
+    csv_filename::String;
+    result_filename::String = joinpath(
+        split(csv_filename, "/")[1:end-1]...,
+        "cactus_plot.pdf",
+    ),
+)::Nothing
+    df = CSV.File(csv_filename) |> DataFrame
+    plot(
+        xlims = (0, df |> @map(_.instance) |> collect |> maximum),
+        ylims = (0, df |> @map(_.comp_time) |> collect |> maximum),
+        xlabel = "solved instances",
+        ylabel = "runtime (sec)",
+        legend = :topleft,
+    )
+    for df_sub in groupby(df, :solver_index)
+        Y =
+            df_sub |>
+            @filter(_.solved == true && _.verification == true) |>
+            @map(_.comp_time) |>
+            collect |>
+            sort
+        X = collect(1:length(Y))
+        plot!(
+            X,
+            Y,
+            linetype = :steppost,
+            linewidth = 3,
+            label = "$(df_sub[1,:solver_index]): $(df_sub[1,:solver])",
+        )
+    end
+    safe_savefig!(result_filename)
+    nothing
+end
+
+function mydescribe(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_filename::String = joinpath(split(csv_filename, "/")[1:end-1]..., "stats.txt"),
+)::Nothing
+
+    df = CSV.File(csv_filename) |> DataFrame
+    open(result_filename, "w") do out
+        for df_sub in groupby(df, :solver_index)
+            label = "$(df_sub[1,:solver_index]): $(df_sub[1,:solver])"
+            s =
+                df_sub |>
+                @filter(_.solved == true && _.verification == true) |>
+                DataFrame |>
+                describe |>
+                string
+            VERBOSE > 0 && println(label, "\n", s)
+            println(out, label, "\n", s, "\n")
+        end
+    end
     nothing
 end

@@ -25,8 +25,10 @@ solvers:
     multi_agent_path_planner:
       _target_: MAPPFD.Solver.astar_operator_decomposition
 
-
 verification:
   _target_: approx_verify_with_local_FD
   max_activation: 30
-  VERBOSE: 1
+
+summary:
+  - _target_: mydescribe
+  - _target_: plot_cactus
