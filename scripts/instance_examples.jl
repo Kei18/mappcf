@@ -30,18 +30,26 @@ function generate_sample_graph4()::Graph
     return G
 end
 
-function generate_sample_sync_instance1()::SyncInstance
-    return SyncInstance(generate_sample_graph1(), [1, 4], [3, 5])
+function generate_sample_sync_instance1(
+    max_num_crashes::Union{Nothing,Int} = nothing,
+)::SyncInstance
+    return SyncInstance(generate_sample_graph1(), [1, 4], [3, 5], max_num_crashes)
 end
 
-function generate_sample_sync_instance2()::SyncInstance
-    return SyncInstance(generate_sample_graph2(), [11, 22, 24], [15, 7, 9])
+function generate_sample_sync_instance2(
+    max_num_crashes::Union{Nothing,Int} = nothing,
+)::SyncInstance
+    return SyncInstance(generate_sample_graph2(), [11, 22, 24], [15, 7, 9], max_num_crashes)
 end
 
-function generate_sample_sync_instance4()::SyncInstance
-    return SyncInstance(generate_sample_graph4(), [4, 8], [6, 2])
+function generate_sample_sync_instance4(
+    max_num_crashes::Union{Nothing,Int} = nothing,
+)::SyncInstance
+    return SyncInstance(generate_sample_graph4(), [4, 8], [6, 2], max_num_crashes)
 end
 
-function generate_sample_seq_instance4()::SeqInstance
-    return SeqInstance(generate_sample_graph4(), [4, 8], [6, 2])
+function generate_sample_seq_instance4(
+    max_num_crashes::Union{Nothing,Int} = nothing,
+)::SeqInstance
+    return SeqInstance(generate_sample_graph4(), [4, 8], [6, 2], max_num_crashes)
 end

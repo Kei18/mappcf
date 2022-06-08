@@ -56,6 +56,17 @@
         @test !approx_verify_with_local_FD(ins, solution; failure_prob = 0.5)
     end
 
+    @testset "sync / local FD / no crash" begin
+        ins = generate_sample_sync_instance1(0)
+        crashes = [SyncCrash(when = 1, who = 1, loc = 1)]
+        solution = Solution([
+            [Plan(who = 1, path = [1, 2, 3], backup = Dict(), offset = 1)],
+            [Plan(who = 1, path = [4, 1, 5], backup = Dict(), offset = 1)],
+        ])
+        hist = execute_with_local_FD(ins, solution; scheduled_crashes = crashes)
+        @test !isnothing(hist)
+    end
+
     @testset "sync / global FD" begin
         ins = SyncInstance(generate_sample_graph2(), [11, 22, 19], [15, 7, 9])
 

@@ -22,7 +22,8 @@ import ..MAPPFD:
     Deadline,
     generate_deadline,
     is_expired,
-    gen_h_func
+    gen_h_func,
+    is_no_more_crash
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding
 import ..MAPPFD.MAPF: astar_operator_decomposition
 import ..MAPPFD.OTIMAPP:

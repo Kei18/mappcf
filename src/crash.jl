@@ -36,3 +36,7 @@ function get_correct_crashed_agents(
     filter!(j -> j != i, correct_agents)
     return (correct_agents = correct_agents, crashed_agents = crashed_agents)
 end
+
+function is_no_more_crash(ins::Instance, crashes::Vector{T} where {T<:Crash})::Bool
+    return !isnothing(ins.max_num_crashes) && length(crashes) >= ins.max_num_crashes
+end
