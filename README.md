@@ -44,7 +44,7 @@ chmod a+x .githooks/pre-commit
 ```sh
 julia --project=.
 > include("./scripts/benchmark_gen.jl")
-> benchmark_gen("./scripts/config/benchamrk/basic.yaml")
+> create_benchmark("./scripts/config/benchamrk/basic.yaml")
 ```
 
 #### evaluation

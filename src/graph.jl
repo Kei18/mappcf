@@ -66,7 +66,7 @@ end
 function generate_random_grid(
     width::Int = 8,
     height::Int = 8;
-    occupancy_rate::Float64 = 0.2,
+    occupancy_rate::Real = 0.2,
 )::Graph
     l = width * height
     return generate_grid(
