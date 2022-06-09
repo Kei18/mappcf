@@ -47,7 +47,8 @@ export
     plot_paths,
     # others
     MAPF,
-    OTIMAPP
+    OTIMAPP,
+    Failure
 
 import Random: seed!, randperm
 import Printf: @printf, @sprintf

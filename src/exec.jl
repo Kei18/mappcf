@@ -45,7 +45,7 @@ end
 
 function execute(
     ins::Ins,
-    solution::Union{Nothing,Solution},
+    solution::Union{Failure,Solution},
     update_config!::Function,
     update_crashes!::Function,
     ;
@@ -53,7 +53,7 @@ function execute(
     VERBOSE::Int = 0,
 )::Union{History,Nothing} where {Ins<:Instance}
 
-    isnothing(solution) && return nothing
+    isa(solution, Failure) && return nothing
 
     config = copy(ins.starts)
     crashes = (Ins == SyncInstance) ? Vector{SyncCrash}() : Vector{SeqCrash}()
@@ -87,7 +87,7 @@ end
 
 function execute_with_local_FD(
     ins::SyncInstance,
-    solution::Union{Nothing,Solution};
+    solution::Union{Failure,Solution};
     scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
     failure_prob::Real = 0,
     max_activation::Int = 30,
@@ -164,7 +164,7 @@ end
 
 function execute_with_global_FD(
     ins::SyncInstance,
-    solution::Union{Nothing,Solution};
+    solution::Union{Failure,Solution};
     scheduled_crashes::Vector{SyncCrash} = Vector{SyncCrash}(),
     failure_prob::Real = 0,
     max_activation::Int = 30,
@@ -213,7 +213,7 @@ end
 
 function execute_with_local_FD(
     ins::SeqInstance,
-    solution::Union{Nothing,Solution},
+    solution::Union{Failure,Solution},
     ;
     scheduled_crashes::Vector{SeqCrash} = Vector{SeqCrash}(),
     max_activation::Int = 30,
@@ -308,13 +308,13 @@ end
 function approx_verify(
     exec::Function,
     ins::Instance,
-    solution::Union{Nothing,Solution};
+    solution::Union{Failure,Solution};
     num_repetition::Int = 20,
     VERBOSE::Int = 0,
     kwargs...,
 )::Bool
 
-    isnothing(solution) && return true
+    isa(solution, Failure) && return true
 
     try
         for _ = 1:num_repetition

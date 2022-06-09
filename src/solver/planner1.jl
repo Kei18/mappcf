@@ -1,14 +1,14 @@
 function planner1(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function,  # (Instance) -> Paths
+    multi_agent_path_planner::Function = astar_operator_decomposition,  # (Instance) -> Paths
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
     kwargs...,
-)::Union{Nothing,Solution}
+)::Union{Failure,Solution}
     # get initial solution
     solution = get_initial_solution(
         ins,
@@ -18,14 +18,18 @@ function planner1(
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
-    isnothing(solution) && return nothing
+    isnothing(solution) && return FAILURE_NO_INITIAL_SOLUTION
 
     # identify intersections
     U = get_initial_unresolved_events(ins, solution)
 
     # main loop
+    loop_cnt = 0
     while !isempty(U)
-        is_expired(deadline) && return nothing
+        loop_cnt += 1
+        VERBOSE > 0 && @printf("\rresolved=%04d/%04d", loop_cnt, length(U))
+
+        is_expired(deadline) && return FAILURE_TIMEOUT
         event = popfirst!(U)
         # avoid duplication
         haskey(solution[event.effect.who][event.effect.plan_id].backup, event.crash) &&
@@ -39,7 +43,10 @@ function planner1(
             h_func = h_func,
             kwargs...,
         )
-        isnothing(backup_plan) && return nothing
+        isnothing(backup_plan) && return begin
+            VERBOSE > 0 && println()
+            is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_BACKUP_PATH
+        end
         register!(solution, event, backup_plan)
         # append new intersections
         U = vcat(U, get_new_unresolved_events(ins, solution, backup_plan))
@@ -266,11 +273,6 @@ function find_backup_plan(
         h_func = h_func(i),
     )
     isnothing(path) && return nothing
-    # if i == 3 && original_plan_i.id == 1 && length(solution[i]) <= 2
-    #     println(event, "\t", original_plan_i)
-    #     println(path)
-    #     println()
-    # end
     path = vcat(original_plan_i.path[1:offset-1], path)
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
 end

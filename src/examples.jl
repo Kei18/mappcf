@@ -53,7 +53,7 @@ function get_traveling_time(plan::Plan)::Int
     return get_traveling_time(plan.path)
 end
 
-function get_scores(solution::Union{Nothing,Solution})::Dict{Symbol,Int}
+function get_scores(solution::Union{Failure,Solution})::Dict{Symbol,Int}
 
     primary_sum_of_path_length = 0
     primary_max_path_length = 0
@@ -65,7 +65,7 @@ function get_scores(solution::Union{Nothing,Solution})::Dict{Symbol,Int}
     worst_sum_of_traveling_time = 0
     worst_max_traveling_time = 0
 
-    if !isnothing(solution)
+    if !isa(solution, Failure)
         for plans in solution
             # primary path
             primary_plan = first(plans)
@@ -101,7 +101,7 @@ function get_scores(solution::Union{Nothing,Solution})::Dict{Symbol,Int}
     )
 end
 
-function get_scores(ins::Instance, solution::Union{Nothing,Solution})::Dict{Symbol,Int}
+function get_scores(ins::Instance, solution::Union{Failure,Solution})::Dict{Symbol,Int}
     N = length(ins.starts)
     tables = get_distance_tables(ins.G, ins.goals)
     arr_shortest_path_length = map(i -> tables[i][ins.starts[i]], 1:N)

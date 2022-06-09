@@ -1,9 +1,10 @@
 module Solver
 
-export Effect, planner1, planner2
+export Effect, planner1, planner2, Failure
 
 import Base: @kwdef
 import Base.Iterators: product
+import Printf: @printf
 import ..MAPPFD:
     Graph,
     Path,
@@ -57,6 +58,13 @@ Base.show(io::IO, e::SyncEffect) = print(
 )
 Base.show(io::IO, e::SeqEffect) =
     print(io, "SeqEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))")
+
+@enum Failure begin
+    FAILURE
+    FAILURE_TIMEOUT
+    FAILURE_NO_INITIAL_SOLUTION
+    FAILURE_NO_BACKUP_PATH
+end
 
 include("./utils.jl")
 include("./planner1.jl")
