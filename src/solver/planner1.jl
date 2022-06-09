@@ -27,6 +27,9 @@ function planner1(
     while !isempty(U)
         is_expired(deadline) && return nothing
         event = popfirst!(U)
+        # avoid duplication
+        haskey(solution[event.effect.who][event.effect.plan_id].backup, event.crash) &&
+            continue
         # compute backup paths
         backup_plan = find_backup_plan(
             ins,
@@ -263,6 +266,11 @@ function find_backup_plan(
         h_func = h_func(i),
     )
     isnothing(path) && return nothing
+    # if i == 3 && original_plan_i.id == 1 && length(solution[i]) <= 2
+    #     println(event, "\t", original_plan_i)
+    #     println(path)
+    #     println()
+    # end
     path = vcat(original_plan_i.path[1:offset-1], path)
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
 end

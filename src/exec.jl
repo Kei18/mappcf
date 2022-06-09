@@ -128,7 +128,19 @@ function execute_with_local_FD(
                                 c.who == crash.who,
                         collect(keys(plan.backup)),
                     )
-                    @assert(!isnothing(backup_key), "no backup path")
+                    @assert(
+                        !isnothing(backup_key),
+                        begin
+                            VERBOSE > 0 && println(
+                                "[no backup]\n" *
+                                "plan: $(plan)\n" *
+                                "current_timestep: $(current_timestep)\n" *
+                                "v_next: $(v_next)\n" *
+                                "crashes: $(crashes)",
+                            )
+                            "no backup path"
+                        end
+                    )
                     next_plan_id = plan.backup[backup_key]
                     @assert(plan_id_list[i] != next_plan_id, "invalid transition")
                     plan_id_list[i] = next_plan_id
@@ -298,6 +310,7 @@ function approx_verify(
     ins::Instance,
     solution::Union{Nothing,Solution};
     num_repetition::Int = 20,
+    VERBOSE::Int = 0,
     kwargs...,
 )::Bool
 
@@ -305,7 +318,7 @@ function approx_verify(
 
     try
         for _ = 1:num_repetition
-            res = exec(ins, solution; kwargs...)
+            res = exec(ins, solution; VERBOSE = VERBOSE - 1, kwargs...)
             isnothing(res) && return false
         end
         return true
