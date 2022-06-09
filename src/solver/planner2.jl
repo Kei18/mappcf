@@ -8,7 +8,7 @@ function planner2(
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
     kwargs...,
-)::Solution
+)::Union{Failure,Solution}
     return flatten_recursive_solution(
         planner2(
             ins,
@@ -39,12 +39,12 @@ function planner2(
     deadline::Union{Nothing,Deadline} = nothing,
     h_func::Function = gen_h_func(ins.G, ins.goals),
     kwargs...,
-)::Union{Nothing,RecursiveSolution}
+)::Union{Failure,RecursiveSolution}
 
     constraints = copy(parent_constrations)
     @label START_PLANNING
     # check time limit
-    is_expired(deadline) && return nothing
+    is_expired(deadline) && return FAILURE_TIMEOUT
 
     # compute collision-free paths
     paths = multi_agent_path_planner(
@@ -59,7 +59,10 @@ function planner2(
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
-    isnothing(paths) && return nothing
+    isnothing(paths) && return begin
+        is_expired(deadline) ? FAILURE_TIMEOUT :
+        (isempty(crashes) ? FAILURE_NO_INITIAL_SOLUTION : FAILURE_NO_BACKUP_PATH)
+    end
 
     # identify critical sections
     U = is_no_more_crash(ins, crashes) ? [] : get_new_unresolved_events(paths, offset)
@@ -80,7 +83,7 @@ function planner2(
             kwargs...,
         )
         # failed to find backup path
-        if isnothing(backup[event.crash])
+        if isa(backup[event.crash], Failure)
             # update constrains
             push!(constraints, event.effect)
             # re-planning
@@ -91,9 +94,9 @@ function planner2(
 end
 
 function flatten_recursive_solution(
-    recursive_solution::RecursiveSolution,
-)::Union{Nothing,Solution}
-    isnothing(recursive_solution) && return nothing
+    recursive_solution::Union{Failure,RecursiveSolution},
+)::Union{Failure,Solution}
+    isa(recursive_solution, Failure) && return recursive_solution
 
     N = length(recursive_solution.paths)
     solution = map(i -> Vector{Plan}(), 1:N)

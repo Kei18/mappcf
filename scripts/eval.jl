@@ -19,6 +19,7 @@ function main(config_file::String, args...)
     num_solvers = length(get(config, "solvers", 0))
     num_total_tasks = length(instances) * num_solvers
     verify = parse_fn(config["verification"])
+    time_limit_sec = get(config, "time_limit_sec", 10)
 
     run =
         (instances; is_pre_compile::Bool = false) -> begin
@@ -36,7 +37,7 @@ function main(config_file::String, args...)
                 solver_name = solver_info["_target_"]
                 planner = parse_fn(solver_info)
                 t_planning = @elapsed begin
-                    solution = planner(ins)
+                    solution = planner(ins; time_limit_sec = time_limit_sec)
                 end
                 verification = verify(ins, solution)
                 if !verification
@@ -54,7 +55,8 @@ function main(config_file::String, args...)
                                       length(ins.starts) - 1 : ins.max_num_crashes,
                     solver = solver_name,
                     solver_index = l,
-                    solved = !isnothing(solution),
+                    solved = !isa(solution, Failure),
+                    failure_type = isa(solution, Failure) ? string(solution) : "",
                     verification = verification,
                     comp_time = t_planning,
                     (; get_scores(ins, solution)...)...,
