@@ -5,7 +5,7 @@ abstract type Instance end
     G::Graph
     starts::Config
     goals::Config
-    max_num_crashes::Union{Nothing,Int} = nothing
+    max_num_crashes::Union{Nothing,Int} = length(starts) - 1
 end
 
 # sequential model
@@ -13,8 +13,18 @@ end
     G::Graph
     starts::Config
     goals::Config
-    max_num_crashes::Union{Nothing,Int} = nothing
+    max_num_crashes::Union{Nothing,Int} = length(starts) - 1
 end
+
+Base.show(io::IO, ins::SyncInstance) = print(
+    io,
+    "SyncInstance(starts=$(ins.starts), goals=$(ins.goals), max_num_crashes=$(ins.max_num_crashes))",
+)
+Base.show(io::IO, ins::SeqInstance) = print(
+    io,
+    "SeqInstance(starts=$(ins.starts), goals=$(ins.goals), max_num_crashes=$(ins.max_num_crashes))",
+)
+
 
 function generate_random_instance_grid(;
     N_min::Int = 5,
@@ -121,23 +131,45 @@ function generate_random_instance_grid_wellformed(;
     return (G, starts, goals)
 end
 
+function get_max_num_crashes(
+    max_num_crashes_min::Union{Nothing,Int},
+    max_num_crashes_max::Union{Nothing,Int},
+)::Union{Nothing,Int}
+    isnothing(max_num_crashes_min) && isnothing(max_num_crashes_max) && return nothing
+    a = isnothing(max_num_crashes_min) ? 0 : max_num_crashes_min
+    b = isnothing(max_num_crashes_max) ? a : max_num_crashes_max
+    return rand(a:b)
+end
+
 function generate_random_sync_instance_grid_wellformed(;
-    max_num_crashes::Union{Nothing,Int} = nothing,
+    max_num_crashes_min::Union{Nothing,Int} = nothing,
+    max_num_crashes_max::Union{Nothing,Int} = nothing,
+    max_num_crashes::Union{Nothing,Int} = get_max_num_crashes(
+        max_num_crashes_min,
+        max_num_crashes_max,
+    ),
     kwargs...,
 )::SyncInstance
+    ins = generate_random_instance_grid_wellformed(; kwargs...)
     return SyncInstance(
-        generate_random_instance_grid_wellformed(; kwargs...)...,
-        max_num_crashes,
+        ins...,
+        isnothing(max_num_crashes) ? nothing : min(max_num_crashes, length(last(ins)) - 1),
     )
 end
 
 function generate_random_seq_instance_grid_wellformed(;
-    max_num_crashes::Union{Nothing,Int} = nothing,
+    max_num_crashes_min::Union{Nothing,Int} = nothing,
+    max_num_crashes_max::Union{Nothing,Int} = nothing,
+    max_num_crashes::Union{Nothing,Int} = get_max_num_crashes(
+        max_num_crashes_min,
+        max_num_crashes_max,
+    ),
     kwargs...,
 )::SeqInstance
+    ins = generate_random_instance_grid_wellformed(; kwargs...)
     return SeqInstance(
-        generate_random_instance_grid_wellformed(; kwargs...)...,
-        max_num_crashes,
+        ins...,
+        isnothing(max_num_crashes) ? nothing : min(max_num_crashes, length(last(ins)) - 1),
     )
 end
 

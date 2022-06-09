@@ -2,6 +2,7 @@ import CSV
 import Random: seed!
 import Printf: @printf
 using MAPPFD
+import JLD
 import Base.Threads
 include("./utils.jl")
 
@@ -38,10 +39,19 @@ function main(config_file::String, args...)
                     solution = planner(ins)
                 end
                 verification = verify(ins, solution)
-                !verification && @error("found infeasible solution: ins-$k, solver-$l")
+                if !verification
+                    @error("found infeasible solution: ins-$k, solver-$l")
+                    JLD.save(
+                        joinpath(root_dir, "infeasible_ins-$(k)_solver-$(l).jld"),
+                        "ins",
+                        ins,
+                    )
+                end
                 result[m] = (
                     instance = k,
                     N = length(ins.starts),
+                    max_num_crashes = isnothing(ins.max_num_crashes) ?
+                                      length(ins.starts) - 1 : ins.max_num_crashes,
                     solver = solver_name,
                     solver_index = l,
                     solved = !isnothing(solution),

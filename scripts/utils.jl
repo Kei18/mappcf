@@ -4,6 +4,7 @@ import JLD
 using DataFrames
 using Query
 using Plots
+using StatsPlots
 import Statistics: mean, median
 
 function parse_fn(config::Dict)::Function
@@ -166,5 +167,80 @@ function describe_all_stats(
             println(out, label, "\n", s, "\n")
         end
     end
+    nothing
+end
+
+function plot_runtime_vs_max_num_crashes(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+)::Nothing
+    df = CSV.File(csv_filename) |> DataFrame
+    for df_sub in groupby(df, :solver_index)
+        plot(
+            xlims = (-0.5, 0.5 + (df_sub |> @map(_.max_num_crashes) |> maximum)),
+            ylims = (0, :auto),
+            ylabel = "runtime (sec)",
+            xlabel = "max_num_crashes",
+            title = "$(df_sub[1,:solver_index]):$(df_sub[1,:solver])",
+        )
+        for D in groupby(
+            df_sub |> @filter(_.solved == true && _.verification == true) |> DataFrame,
+            :max_num_crashes,
+        )
+            M = hcat((D |> @map([_.max_num_crashes, _.comp_time]) |> collect)...)
+            X, Y = M[1, :], M[2, :]
+            violin!(X, Y, color = :deepskyblue, label = nothing)
+            boxplot!(
+                X,
+                Y,
+                label = nothing,
+                color = :azure1,
+                fillalpha = 0.75,
+                bar_width = 0.2,
+            )
+        end
+        safe_savefig!(
+            joinpath(
+                result_dir,
+                "runtime_vs_max_num_crashes_solver-$(df_sub[1, :solver_index]).pdf",
+            ),
+        )
+    end
+end
+
+function plot_success_rate_vs_max_num_crashes(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+)::Nothing
+    df = CSV.File(csv_filename) |> DataFrame
+    for df_sub in groupby(df, :solver_index)
+        plot(
+            ylims = (0, 1.1),
+            ylabel = "success rate",
+            xlabel = "max_num_crashes",
+            title = "$(df_sub[1,:solver_index]):$(df_sub[1,:solver])",
+        )
+        for D in groupby(df_sub, :max_num_crashes)
+            X = D[1, :][:max_num_crashes]
+            num_all = D |> @count
+            num_solved = D |> @filter(_.solved == true && _.verification == true) |> @count
+            Y = num_solved / num_all
+            bar!([X], [Y], label = nothing, color = :deepskyblue)
+            annotate!([X], [1.1], ["$num_solved/$num_all"], fontsize = 12)
+        end
+        safe_savefig!(
+            joinpath(
+                result_dir,
+                "success_rate_vs_max_num_crashes_solver-$(df_sub[1, :solver_index]).pdf",
+            ),
+        )
+    end
+end
+
+function open_result_dir(csv_filename::String)::Nothing
+    dir = joinpath(split(csv_filename, "/")[1:end-1]...)
+    run(`open $dir`)
     nothing
 end
