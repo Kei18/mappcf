@@ -30,5 +30,7 @@ verification:
   max_activation: 30
 
 summary:
-  - _target_: mydescribe
+  - _target_: describe_simply
+    VERBOSE: 1
+  - _target_: describe_all_stats
   - _target_: plot_cactus

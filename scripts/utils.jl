@@ -4,6 +4,7 @@ import JLD
 using DataFrames
 using Query
 using Plots
+import Statistics: mean, median
 
 function parse_fn(config::Dict)::Function
     params = Dict()
@@ -117,7 +118,35 @@ function plot_cactus(
     nothing
 end
 
-function mydescribe(
+function describe_simply(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_filename::String = joinpath(
+        split(csv_filename, "/")[1:end-1]...,
+        "stats_simple.txt",
+    ),
+)::Nothing
+
+    df = CSV.File(csv_filename) |> DataFrame
+    open(result_filename, "w") do out
+        for df_sub in groupby(df, :solver_index)
+            label = "$(df_sub[1,:solver_index]): $(df_sub[1,:solver])"
+            y =
+                df_sub |>
+                @filter(_.solved == true && _.verification == true) |>
+                @map(_.comp_time) |>
+                collect
+            s = "$label\tsolved:$(length(y))/$(first(size(df_sub)))"
+            s *= "\tcomp_time:$(round(mean(y), digits=3)) (mean,sec)"
+            s *= "\t$(round(median(y), digits=3)) (med,sec)"
+            VERBOSE > 0 && println(s)
+            println(out, s)
+        end
+    end
+    nothing
+end
+
+function describe_all_stats(
     csv_filename::String;
     VERBOSE::Int = 0,
     result_filename::String = joinpath(split(csv_filename, "/")[1:end-1]..., "stats.txt"),

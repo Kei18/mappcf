@@ -1,4 +1,4 @@
-root: ../data/exp/01_sync
+root: ../data/exp/
 
 seed_offset: 0
 save_plot: false
