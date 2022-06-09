@@ -68,7 +68,7 @@
     end
 
     @testset "sync / global FD" begin
-        ins = SyncInstance(generate_sample_graph2(), [11, 22, 19], [15, 7, 9])
+        ins = SyncInstance(generate_sample_graph2(), [11, 22, 19], [15, 7, 9], nothing)
 
         solution = Solution([
             [

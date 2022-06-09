@@ -72,11 +72,11 @@ function execute(
         push!(hist, (config = copy(config), crashes = copy(crashes)))
 
         # verification
-        check_valid_transition(ins.G, hist[end-1].config, hist[end].config)
+        check_valid_transition(ins.G, hist[end-1].config, hist[end].config, t)
 
         # check termination
         if is_finished(config, crashes, ins.goals)
-            VERBOSE > 1 && @info("finish execution at $(t)-th activation's")
+            VERBOSE > 0 && @info("finish execution at $(t)-th activation's")
             return hist
         end
     end

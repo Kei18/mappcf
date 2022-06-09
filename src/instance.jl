@@ -8,30 +8,12 @@ abstract type Instance end
     max_num_crashes::Union{Nothing,Int} = nothing
 end
 
-SyncInstance(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    max_num_crashes::Union{Nothing,Int} = nothing,
-) = begin
-    SyncInstance(G = G, starts = starts, goals = goals, max_num_crashes = max_num_crashes)
-end
-
 # sequential model
 @kwdef struct SeqInstance <: Instance
     G::Graph
     starts::Config
     goals::Config
     max_num_crashes::Union{Nothing,Int} = nothing
-end
-
-SeqInstance(
-    G::Graph,
-    starts::Config,
-    goals::Config,
-    max_num_crashes::Union{Nothing,Int} = nothing,
-) = begin
-    SeqInstance(G = G, starts = starts, goals = goals, max_num_crashes = max_num_crashes)
 end
 
 function generate_random_instance_grid(;
@@ -56,12 +38,18 @@ function generate_random_instance_grid(;
     return (G, starts, goals)
 end
 
-function generate_random_sync_instance_grid(; kwargs...)::SyncInstance
-    return SyncInstance(generate_random_instance_grid(; kwargs...)...)
+function generate_random_sync_instance_grid(;
+    max_num_crashes::Union{Nothing,Int} = nothing,
+    kwargs...,
+)::SyncInstance
+    return SyncInstance(generate_random_instance_grid(; kwargs...)..., max_num_crashes)
 end
 
-function generate_random_seq_instance_grid(; kwargs...)::SeqInstance
-    return SeqInstance(generate_random_instance_grid(; kwargs...)...)
+function generate_random_seq_instance_grid(;
+    max_num_crashes::Union{Nothing,Int} = nothing,
+    kwargs...,
+)::SeqInstance
+    return SeqInstance(generate_random_instance_grid(; kwargs...)..., max_num_crashes)
 end
 
 function generate_multiple_random_sync_instance_grid(;
@@ -133,12 +121,24 @@ function generate_random_instance_grid_wellformed(;
     return (G, starts, goals)
 end
 
-function generate_random_sync_instance_grid_wellformed(; kwargs...)::SyncInstance
-    return SyncInstance(generate_random_instance_grid_wellformed(; kwargs...)...)
+function generate_random_sync_instance_grid_wellformed(;
+    max_num_crashes::Union{Nothing,Int} = nothing,
+    kwargs...,
+)::SyncInstance
+    return SyncInstance(
+        generate_random_instance_grid_wellformed(; kwargs...)...,
+        max_num_crashes,
+    )
 end
 
-function generate_random_seq_instance_grid_wellformed(; kwargs...)::SeqInstance
-    return SeqInstance(generate_random_instance_grid_wellformed(; kwargs...)...)
+function generate_random_seq_instance_grid_wellformed(;
+    max_num_crashes::Union{Nothing,Int} = nothing,
+    kwargs...,
+)::SeqInstance
+    return SeqInstance(
+        generate_random_instance_grid_wellformed(; kwargs...)...,
+        max_num_crashes,
+    )
 end
 
 function generate_multiple_random_sync_instance_grid_wellformed(;

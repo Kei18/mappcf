@@ -16,9 +16,9 @@ function safe_savefig!(filename::Union{Nothing,String} = nothing)
     savefig(filename)
 end
 
-function plot_init()
+function plot_init(; figsize::Real = 400, kwargs...)
     return plot(
-        size = (400, 400),
+        size = (figsize, figsize),
         xticks = nothing,
         yticks = nothing,
         xaxis = false,
@@ -26,7 +26,13 @@ function plot_init()
     )
 end
 
-function plot_graph!(G::Graph; show_vertex_id::Bool = false, markersize::Real = 12)
+function plot_graph!(
+    G::Graph;
+    show_vertex_id::Bool = false,
+    markersize::Real = 12,
+    fontsize::Real = 6,
+    kwargs...,
+)
     # plot edges
     for v in G
         for j in filter(j -> j > v.id, v.neigh)
@@ -45,15 +51,14 @@ function plot_graph!(G::Graph; show_vertex_id::Bool = false, markersize::Real = 
     positions = hcat(map(v -> v.pos, _G)...)
     X = positions[1, :]
     Y = positions[2, :]
-    # ann = map(v -> (v.pos..., (string(v.id), 10)), _G)  # annotation
     scatter!(X, Y, label = nothing, markersize = markersize, color = :white)
-    show_vertex_id && annotate!(X, Y, map(v -> (v.id, 6, :black, :bottom), _G))
+    show_vertex_id && annotate!(X, Y, map(v -> (v.id, fontsize, :black, :bottom), _G))
 
     return plot!()
 end
 
 function plot_graph(args...; kwargs...)
-    plot_init()
+    plot_init(; kwargs...)
     return plot_graph!(args...; kwargs...)
 end
 
@@ -62,6 +67,8 @@ function plot_locs!(
     config::Config;
     markersize::Real = 12,
     show_agent_id::Bool = false,
+    fontsize::Real = 6,
+    kwargs...,
 )
     positions = hcat(map(k -> get(G, k).pos, config)...)
     X = positions[1, :]
@@ -73,10 +80,11 @@ function plot_locs!(
         marker = (markersize, 1.0),
         label = nothing,
     )
-    show_agent_id && annotate!(X, Y, map(k -> (k, 6, :black, :top), 1:length(config)))
+    show_agent_id &&
+        annotate!(X, Y, map(k -> (k, fontsize, :black, :top), 1:length(config)))
 end
 
-function plot_goals!(G::Graph, goals::Config)
+function plot_goals!(G::Graph, goals::Config; markersize_goal::Real = 5, kwargs...)
     isempty(goals) && return
     positions = hcat(map(k -> get(G, k).pos, goals)...)
     X = positions[1, :]
@@ -85,23 +93,16 @@ function plot_goals!(G::Graph, goals::Config)
         X,
         Y,
         label = nothing,
-        markersize = 5,
+        markersize = markersize_goal,
         markershape = :rect,
         color = get_colors(length(goals)),
     )
 end
 
-function plot_instance(
-    G::Graph,
-    starts::Config,
-    goals::Config;
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
-    markersize::Real = 12,
-)
-    plot_graph(G; show_vertex_id = show_vertex_id, markersize = markersize)
-    plot_locs!(G, starts; show_agent_id = show_agent_id, markersize = markersize)
-    plot_goals!(G, goals)
+function plot_instance(G::Graph, starts::Config, goals::Config; kwargs...)
+    plot_graph(G; kwargs...)
+    plot_locs!(G, starts; kwargs...)
+    plot_goals!(G, goals; kwargs...)
     return plot!()
 end
 
@@ -181,16 +182,9 @@ function plot_solution(
     linewidth = 6,
     δ = 0.02,
     ϵ = 0.4,
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
+    kwargs...,
 )
-    plot_instance(
-        G,
-        starts,
-        goals;
-        show_agent_id = show_agent_id,
-        show_vertex_id = show_vertex_id,
-    )
+    plot_instance(G, starts, goals; kwargs...)
     isnothing(solution) && return plot!()
     N = length(starts)
     for i = 1:N

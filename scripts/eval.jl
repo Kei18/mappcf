@@ -5,8 +5,8 @@ using MAPPFD
 import Base.Threads
 include("./utils.jl")
 
-function main(config_file::String)
-    res = prepare_exp!(config_file)
+function main(config_file::String, args...)
+    res = prepare_exp!(config_file, "exp", args...)
     isnothing(res) && return
     root_dir, config = res
 
@@ -75,6 +75,13 @@ function main(config_file::String)
         result = run(instances)
     end
     @info("done ($(elapsed_exp) sec), save result")
-    CSV.write(joinpath(root_dir, "result.csv"), result)
+    result_filename = joinpath(root_dir, "result.csv")
+    CSV.write(result_filename, result)
+
+    # stats
+    if haskey(config, "summary")
+        @info("compute stats")
+        foreach(c -> parse_fn(c)(result_filename), config["summary"])
+    end
     return :success
 end

@@ -66,7 +66,7 @@ end
 function generate_random_grid(
     width::Int = 8,
     height::Int = 8;
-    occupancy_rate::Float64 = 0.2,
+    occupancy_rate::Real = 0.2,
 )::Graph
     l = width * height
     return generate_grid(
@@ -86,7 +86,12 @@ function generate_random_graph(num_vertices::Int = 30, prob::Float64 = 0.2)::Gra
     return G
 end
 
-function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
+function check_valid_transition(
+    G::Graph,
+    C_from::Config,
+    C_to::Config,
+    timestep::Union{Nothing,Int} = nothing,
+)::Nothing
     N = length(C_from)
     for i = 1:N
         v_i_from = C_from[i]
@@ -102,14 +107,17 @@ function check_valid_transition(G::Graph, C_from::Config, C_to::Config)
             # check collisions
             @assert(
                 v_j_from != v_i_from,
-                "vertex collision between agent-$i and agent-$j at vertex-$(v_i_from)"
+                "vertex collision between agent-$i and agent-$j at vertex-$v_i_from" *
+                " at timestep=$timestep"
             )
             @assert(
                 v_j_from != v_i_to || v_j_to != v_i_from,
-                "edge collision between agent-$i and agent-$j at vertex [$v_i_from, $v_i_to]"
+                "edge collision between agent-$i and agent-$j at vertex [$v_i_from, $v_i_to]" *
+                " at timestep=$timestep"
             )
         end
     end
+    nothing
 end
 
 function get_path_length(path::Path)::Int
