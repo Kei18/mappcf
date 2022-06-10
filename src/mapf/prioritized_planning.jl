@@ -11,6 +11,7 @@ function prioritized_planning(
                                         generate_deadline(time_limit_sec),
     avoid_starts::Bool = false,
     avoid_goals::Bool = false,
+    avoid_duplicates::Bool = false,
     planning_order = collect(1:length(starts)),
     VERBOSE::Int = 0,
     kwargs...,
@@ -20,6 +21,8 @@ function prioritized_planning(
 
     paths = map(i -> Path(), 1:N)
     collision_table = []
+    used_cnt_table = fill(0, K)
+
     for i in planning_order
         VERBOSE > 1 && println(
             "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\tagent-$(i) starts planning",
@@ -46,12 +49,18 @@ function prioritized_planning(
                 return false
             end
 
+
+        h_func_i = h_func(i)
+        h_func_i_tiebreak = (v) -> begin
+            h_func_i(v) + (1 - 1e2 - used_cnt_table[v] / 1e2)
+        end
+
         path = timed_pathfinding(
             G = G,
             start = starts[i],
             check_goal = gen_check_goal_pp(paths, i, goals[i]),
             invalid = invalid,
-            h_func = h_func(i),
+            h_func = avoid_duplicates ? h_func_i_tiebreak : h_func_i,
             deadline = deadline,
             timestep_limit = timestep_limit,
         )
@@ -78,6 +87,7 @@ function prioritized_planning(
                 end
             end
             collision_table[t][v] = i
+            used_cnt_table[v] += 1
         end
         for t = length(path):length(collision_table)
             collision_table[t][path[end]] = i
