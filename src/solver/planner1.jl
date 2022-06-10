@@ -1,7 +1,9 @@
 function planner1(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function = astar_operator_decomposition,  # (Instance) -> Paths
+    multi_agent_path_planner::Function = isa(ins, SyncInstance) ?
+                                         astar_operator_decomposition :
+                                         seq_prioritized_planning,
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
@@ -255,7 +257,7 @@ function find_backup_plan(
     crashed_locations = map(c -> c.loc, crashes)
 
     # h-value
-    h_func = h_func_global
+    h_func = h_func_global(i)
     if use_aggressive_h_func
         dist_table = get_distance_table(ins.G, g, crashed_locations)
         # not reachable -> failure
@@ -285,7 +287,7 @@ function find_backup_plan(
             return false
         end
 
-    path = timed_pathfinding(
+    path = timed_pathfinding(;
         G = ins.G,
         start = s,
         check_goal = (S) -> S.v == g,

@@ -7,6 +7,8 @@ function prioritized_planning(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    avoid_starts::Bool = false,
+    avoid_goals::Bool = false,
     kwargs...,
 )::Union{Nothing,Paths}
     N = length(starts)
@@ -21,7 +23,8 @@ function prioritized_planning(
                 t = S_to.t
 
                 # avoid other goals
-                v_i_to != goals[i] && v_i_to in goals && return true
+                avoid_starts && v_i_to != starts[i] && v_i_to in starts && return true
+                avoid_goals && v_i_to != goals[i] && v_i_to in goals && return true
 
                 # collision
                 for j = 1:N
@@ -53,6 +56,10 @@ function prioritized_planning(
     end
 
     return paths
+end
+
+function RPP(args...; kwargs...)::Union{Nothing,Paths}
+    return prioritized_planning(args...; avoid_starts = true, avoid_goals = true, kwargs...)
 end
 
 function gen_check_goal_pp(paths::Paths, i::Int, goal::Int)::Function

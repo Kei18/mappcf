@@ -24,9 +24,9 @@ import ..MAPPFD:
     generate_deadline,
     is_expired,
     gen_h_func,
-    is_no_more_crash
+    is_no_more_crash,
+    MAPF
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding, get_distance_table
-import ..MAPPFD.MAPF: astar_operator_decomposition
 import ..MAPPFD.OTIMAPP:
     FragmentTable,
     potential_deadlock_exists,
