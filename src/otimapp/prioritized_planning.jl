@@ -1,4 +1,4 @@
-function prioritized_planning(
+function seq_prioritized_planning(
     G::Graph,
     starts::Config,
     goals::Config;
@@ -7,7 +7,7 @@ function prioritized_planning(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    kwargs...,
+    avoid_starts::Bool = false,
 )::Union{Nothing,Paths}
     N = length(starts)
     paths = map(i -> Path(), 1:N)
@@ -16,9 +16,13 @@ function prioritized_planning(
     table = FragmentTable()
 
     for i = 1:N
-
+        VERBOSE > 1 && println(
+            "elapsed:$(round(elapsed_sec(deadline), digits=3))sec\tagent-$(i) starts planning",
+        )
         invalid =
             (S_from, S_to) -> begin
+                # avoid other starts
+                avoid_starts && S_to.v != starts[i] && S_to.v in starts && return true
                 # potential terminal deadlock
                 (S_to.v != goals[i] && S_to.v in goals) && return true
                 # potential cyclic deadlock
@@ -44,4 +48,8 @@ function prioritized_planning(
     end
 
     return paths
+end
+
+function SeqRPP(args...; kwargs...)::Union{Nothing,Paths}
+    return seq_prioritized_planning(args...; avoid_starts = true, kwargs...)
 end

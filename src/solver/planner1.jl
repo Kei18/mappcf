@@ -1,9 +1,7 @@
 function planner1(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function = isa(ins, SyncInstance) ?
-                                         astar_operator_decomposition :
-                                         seq_prioritized_planning,
+    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP : SeqRPP,
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :

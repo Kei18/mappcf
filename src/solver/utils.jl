@@ -88,6 +88,6 @@ function RPP(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
     return MAPF.RPP(ins.G, ins.starts, ins.goals; kwargs...)
 end
 
-function seq_prioritized_planning(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
-    return seq_prioritized_planning(ins.G, ins.starts, ins.goals; kwargs...)
+function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP(ins.G, ins.starts, ins.goals; kwargs...)
 end

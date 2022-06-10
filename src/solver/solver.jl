@@ -25,12 +25,10 @@ import ..MAPPFD:
     is_expired,
     gen_h_func,
     is_no_more_crash,
-    MAPF
+    MAPF,
+    OTIMAPP
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding, get_distance_table
-import ..MAPPFD.OTIMAPP:
-    FragmentTable,
-    potential_deadlock_exists,
-    prioritized_planning as seq_prioritized_planning
+import ..MAPPFD.OTIMAPP: FragmentTable, potential_deadlock_exists
 
 abstract type Effect end
 @kwdef struct Event

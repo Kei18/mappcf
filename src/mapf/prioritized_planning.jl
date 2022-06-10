@@ -30,7 +30,7 @@ function prioritized_planning(
                 v_i_to = S_to.v
                 t = S_to.t
 
-                # avoid other goals
+                # avoid other starts & goals
                 avoid_starts && v_i_to != starts[i] && v_i_to in starts && return true
                 avoid_goals && v_i_to != goals[i] && v_i_to in goals && return true
 
