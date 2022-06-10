@@ -25,7 +25,7 @@ import ..MAPPFD:
     is_expired,
     gen_h_func,
     is_no_more_crash
-import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding
+import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding, get_distance_table
 import ..MAPPFD.MAPF: astar_operator_decomposition
 import ..MAPPFD.OTIMAPP:
     FragmentTable,
