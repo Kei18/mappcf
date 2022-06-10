@@ -110,6 +110,10 @@ function plot_instance(ins::Instance; kwargs...)
     return plot_instance(ins.G, ins.starts, ins.goals; kwargs...)
 end
 
+function plot_instance(ins::Tuple{Graph,Config,Config}; kwargs...)
+    return plot_instance(ins...; kwargs...)
+end
+
 function plot_crashes!(G::Graph, config::Config, crashes::Vector{T} where {T<:Crash})
     positions = hcat(
         map(
@@ -148,7 +152,7 @@ function plot_paths(
     show_agent_id::Bool = false,
     linewidth::Real = 2,
     δ = 0.02,
-    markersize::Real = 12,
+    kwargs...,
 )
     plot_instance(
         G,
@@ -156,7 +160,7 @@ function plot_paths(
         map(last, paths);
         show_agent_id = show_agent_id,
         show_vertex_id = show_vertex_id,
-        markersize = markersize,
+        kwargs...,
     )
     for (i, path) in enumerate(paths)
         δ_fixed = rand() * 2δ - δ

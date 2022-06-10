@@ -16,7 +16,8 @@ import ..MAPPFD:
     Deadline,
     generate_deadline,
     is_expired,
-    gen_h_func
+    gen_h_func,
+    elapsed_sec
 
 include("./utils.jl")
 include("./prioritized_planning.jl")

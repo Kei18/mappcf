@@ -1,3 +1,5 @@
+const NONE = 0
+
 function prioritized_planning(
     G::Graph,
     starts::Config,
@@ -9,15 +11,21 @@ function prioritized_planning(
                                         generate_deadline(time_limit_sec),
     avoid_starts::Bool = false,
     avoid_goals::Bool = false,
+    VERBOSE::Int = 0,
     kwargs...,
 )::Union{Nothing,Paths}
     N = length(starts)
     paths = map(i -> Path(), 1:N)
 
+    K = length(G)
+    collision_table = []
+
     for i = 1:N
+        VERBOSE > 1 && println(
+            "elapsed:$(round(elapsed_sec(deadline), digits=3))sec\tagent-$(i) starts planning",
+        )
         invalid =
             (S_from, S_to) -> begin
-                # TODO: optimize this procedure
                 v_i_from = S_from.v
                 v_i_to = S_to.v
                 t = S_to.t
@@ -26,14 +34,14 @@ function prioritized_planning(
                 avoid_starts && v_i_to != starts[i] && v_i_to in starts && return true
                 avoid_goals && v_i_to != goals[i] && v_i_to in goals && return true
 
-                # collision
-                for j = 1:N
-                    (j == i || isempty(paths[j])) && continue
-                    v_j_from = get_in_range(paths[j], t - 1)
-                    v_j_to = get_in_range(paths[j], t)
-                    # vertex or edge collision
-                    (v_i_to == v_j_to) && return true
-                    (v_j_to == v_i_from && v_j_from == v_i_to) && return true
+                # check collision
+                if t <= length(collision_table)
+                    # vertex
+                    collision_table[t][v_i_to] != NONE && return true
+                    # edge
+                    collision_table[t][v_i_from] == collision_table[t-1][v_i_to] != NONE && return true
+                elseif !isempty(collision_table)
+                    collision_table[end][v_i_to] != NONE && return true
                 end
                 return false
             end
@@ -41,7 +49,7 @@ function prioritized_planning(
         path = timed_pathfinding(
             G = G,
             start = starts[i],
-            check_goal = (S) -> S.v == goals[i],
+            check_goal = gen_check_goal_pp(paths, i, goals[i]),
             invalid = invalid,
             h_func = h_func(i),
             deadline = deadline,
@@ -49,13 +57,34 @@ function prioritized_planning(
         )
 
         # failure case
-        isnothing(path) && return nothing
+        if isnothing(path)
+            VERBOSE > 0 && println(
+                "elapsed:$(round(elapsed_sec(deadline), digits=3))s\tagent-$(i) fails to find a path",
+            )
+            return nothing
+        end
 
         # register
         paths[i] = path
+
+        # update collision table
+        for (t, v) in enumerate(path)
+            if length(collision_table) < t
+                push!(collision_table, fill(NONE, K))
+                foreach(j -> collision_table[t][paths[j][end]] = j, 1:i-1)
+            end
+            collision_table[t][v] = i
+        end
+        for t = length(path):length(collision_table)
+            collision_table[t][path[end]] = i
+        end
     end
 
     return paths
+end
+
+function PP(args...; kwargs...)::Union{Nothing,Paths}
+    return prioritized_planning(args...; kwargs...)
 end
 
 function RPP(args...; kwargs...)::Union{Nothing,Paths}
