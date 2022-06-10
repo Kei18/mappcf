@@ -11,18 +11,18 @@ function prioritized_planning(
                                         generate_deadline(time_limit_sec),
     avoid_starts::Bool = false,
     avoid_goals::Bool = false,
+    planning_order = collect(1:length(starts)),
     VERBOSE::Int = 0,
     kwargs...,
 )::Union{Nothing,Paths}
     N = length(starts)
-    paths = map(i -> Path(), 1:N)
-
     K = length(G)
-    collision_table = []
 
-    for i = 1:N
+    paths = map(i -> Path(), 1:N)
+    collision_table = []
+    for i in planning_order
         VERBOSE > 1 && println(
-            "elapsed:$(round(elapsed_sec(deadline), digits=3))sec\tagent-$(i) starts planning",
+            "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\tagent-$(i) starts planning",
         )
         invalid =
             (S_from, S_to) -> begin
@@ -59,7 +59,7 @@ function prioritized_planning(
         # failure case
         if isnothing(path)
             VERBOSE > 0 && println(
-                "elapsed:$(round(elapsed_sec(deadline), digits=3))s\tagent-$(i) fails to find a path",
+                "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\tagent-$(i) fails to find a path",
             )
             return nothing
         end
@@ -71,7 +71,11 @@ function prioritized_planning(
         for (t, v) in enumerate(path)
             if length(collision_table) < t
                 push!(collision_table, fill(NONE, K))
-                foreach(j -> collision_table[t][paths[j][end]] = j, 1:i-1)
+                for j = 1:N
+                    j == i && continue
+                    isempty(paths[j]) && continue
+                    collision_table[t][paths[j][end]] = j
+                end
             end
             collision_table[t][v] = i
         end
@@ -87,8 +91,39 @@ function PP(args...; kwargs...)::Union{Nothing,Paths}
     return prioritized_planning(args...; kwargs...)
 end
 
+function PP_repeat(
+    args...;
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    VERBOSE::Int = 0,
+    kwargs...,
+)::Union{Nothing,Paths}
+    N = length(args[2])
+    iter_cnt = 0
+    while !is_expired(deadline)
+        iter_cnt += 1
+        VERBOSE > 0 && println(
+            "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\titer:$(iter_cnt)",
+        )
+        paths = prioritized_planning(
+            args...;
+            planning_order = randperm(N),
+            deadline = deadline,
+            VERBOSE = VERBOSE - 1,
+            kwargs...,
+        )
+        !isnothing(paths) && return paths
+    end
+    return nothing
+end
+
 function RPP(args...; kwargs...)::Union{Nothing,Paths}
     return prioritized_planning(args...; avoid_starts = true, avoid_goals = true, kwargs...)
+end
+
+function RPP_repeat(args...; kwargs...)::Union{Nothing,Paths}
+    return PP_repeat(args...; avoid_starts = true, avoid_goals = true, kwargs...)
 end
 
 function gen_check_goal_pp(paths::Paths, i::Int, goal::Int)::Function

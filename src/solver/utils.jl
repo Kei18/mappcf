@@ -88,6 +88,10 @@ function RPP(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
     return MAPF.RPP(ins.G, ins.starts, ins.goals; kwargs...)
 end
 
+function RPP_repeat(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return MAPF.RPP_repeat(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
 function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
     return OTIMAPP.SeqRPP(ins.G, ins.starts, ins.goals; kwargs...)
 end

@@ -1,7 +1,7 @@
 @testset verbose = true "solver" begin
     @testset "planner1 sync" begin
         ins = generate_sample_sync_instance4()
-        solution = MAPPFD.planner1(ins)
+        solution = MAPPFD.planner1(ins; multi_agent_path_planner = MAPPFD.Solver.RPP)
         @test solution[1][1].path == [4, 5, 6]
         @test solution[2][1].path == [8, 8, 5, 2]
         @test solution[2][2].path == [8, 8, 6, 2]
@@ -9,7 +9,7 @@
 
     @testset "planner1 sync no crash" begin
         ins = generate_sample_sync_instance4(0)
-        solution = MAPPFD.planner1(ins)
+        solution = MAPPFD.planner1(ins; multi_agent_path_planner = MAPPFD.Solver.RPP)
         @test length(solution[2]) == 1
     end
 
