@@ -77,9 +77,25 @@ function add_event!(
 end
 
 function astar_operator_decomposition(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
-    return astar_operator_decomposition(ins.G, ins.starts, ins.goals; kwargs...)
+    return MAPF.astar_operator_decomposition(ins.G, ins.starts, ins.goals; kwargs...)
 end
 
-function seq_prioritized_planning(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
-    return seq_prioritized_planning(ins.G, ins.starts, ins.goals; kwargs...)
+function PP(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return MAPF.prioritized_planning(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function RPP(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return MAPF.RPP(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function RPP_repeat(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return MAPF.RPP_repeat(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function SeqRPP_repeat(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP_repeat(ins.G, ins.starts, ins.goals; kwargs...)
 end

@@ -6,6 +6,7 @@ function is_valid_mapf_solution(
     VERBOSE::Int = 0,
 )::Bool
 
+    isnothing(solution) && return true
     N = length(starts)
 
     # starts
@@ -25,7 +26,7 @@ function is_valid_mapf_solution(
         C_from = map(i -> get_in_range(solution[i], t - 1), 1:N)
         C_to = map(i -> get_in_range(solution[i], t), 1:N)
         try
-            check_valid_transition(G, C_from, C_to)
+            check_valid_transition(G, C_from, C_to, t - 1)
         catch e
             @info(e)
             return false

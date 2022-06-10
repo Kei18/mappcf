@@ -3,6 +3,7 @@ module OTIMAPP
 export Fragment, FragmentTable, register!, potential_deadlock_exists
 
 import Base: @kwdef
+import Random: randperm
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 import ..MAPPFD:
     Graph,
@@ -17,7 +18,8 @@ import ..MAPPFD:
     Deadline,
     generate_deadline,
     is_expired,
-    gen_h_func
+    gen_h_func,
+    elapsed_sec
 
 include("./fragment.jl")
 include("./prioritized_planning.jl")

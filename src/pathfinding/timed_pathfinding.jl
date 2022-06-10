@@ -27,7 +27,7 @@ function timed_pathfinding(;
             return false
         end
 
-    return search(
+    return search(;
         initial_node = TimedNode(v = start, t = 1, h = h_func(start)),
         invalid = invalid_with_timestep_limit,
         check_goal = check_goal,

@@ -2,6 +2,7 @@ module MAPF
 
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
+import Random: randperm
 import ..MAPPFD:
     Graph,
     get_neighbors,
@@ -16,7 +17,8 @@ import ..MAPPFD:
     Deadline,
     generate_deadline,
     is_expired,
-    gen_h_func
+    gen_h_func,
+    elapsed_sec
 
 include("./utils.jl")
 include("./prioritized_planning.jl")
