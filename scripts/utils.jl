@@ -138,8 +138,10 @@ function describe_simply(
                 @map(_.comp_time) |>
                 collect
             s = "$label\tsolved:$(length(y))/$(first(size(df_sub)))"
-            s *= "\tcomp_time:$(round(mean(y), digits=3)) (mean,sec)"
-            s *= "\t$(round(median(y), digits=3)) (med,sec)"
+            if !isempty(y)
+                s *= "\tcomp_time:$(round(mean(y), digits=3)) (mean,sec)"
+                s *= "\t$(round(median(y), digits=3)) (med,sec)"
+            end
             VERBOSE > 0 && println(s)
             println(out, s)
         end
