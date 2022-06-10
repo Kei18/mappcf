@@ -7,6 +7,7 @@ function seq_prioritized_planning(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    planning_order = collect(1:length(starts)),
     avoid_starts::Bool = false,
 )::Union{Nothing,Paths}
     N = length(starts)
@@ -15,7 +16,7 @@ function seq_prioritized_planning(
     # fragments table
     table = FragmentTable()
 
-    for i = 1:N
+    for (k, i) in enumerate(planning_order)
         VERBOSE > 1 && println(
             "elapsed:$(round(elapsed_sec(deadline), digits=3))sec\tagent-$(i) starts planning",
         )
@@ -44,12 +45,47 @@ function seq_prioritized_planning(
 
         # register
         paths[i] = path
-        i < N && register!(table, i, path)
+        k < N && register!(table, i, path)
     end
 
     return paths
 end
 
+function SeqPP(args...; kwargs...)::Union{Nothing,Paths}
+    return seq_prioritized_planning(args...; kwargs...)
+end
+
 function SeqRPP(args...; kwargs...)::Union{Nothing,Paths}
     return seq_prioritized_planning(args...; avoid_starts = true, kwargs...)
+end
+
+function SeqPP_repeat(
+    args...;
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    VERBOSE::Int = 0,
+    kwargs...,
+)::Union{Nothing,Paths}
+    N = length(args[2])
+    iter_cnt = 0
+    while !is_expired(deadline)
+        iter_cnt += 1
+        VERBOSE > 0 && println(
+            "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\titer:$(iter_cnt)",
+        )
+        paths = seq_prioritized_planning(
+            args...;
+            planning_order = randperm(N),
+            deadline = deadline,
+            VERBOSE = VERBOSE - 1,
+            kwargs...,
+        )
+        !isnothing(paths) && return paths
+    end
+    return nothing
+end
+
+function SeqRPP_repeat(args...; kwargs...)::Union{Nothing,Paths}
+    return SeqPP_repeat(args...; avoid_starts = true, kwargs...)
 end

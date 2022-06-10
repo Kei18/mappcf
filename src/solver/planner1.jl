@@ -1,7 +1,8 @@
 function planner1(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP_repeat : SeqRPP,
+    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP_repeat :
+                                         SeqRPP_repeat,
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :

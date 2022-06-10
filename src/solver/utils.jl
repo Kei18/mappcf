@@ -95,3 +95,7 @@ end
 function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
     return OTIMAPP.SeqRPP(ins.G, ins.starts, ins.goals; kwargs...)
 end
+
+function SeqRPP_repeat(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP_repeat(ins.G, ins.starts, ins.goals; kwargs...)
+end
