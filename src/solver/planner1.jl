@@ -40,7 +40,7 @@ function planner1(
             solution,
             event;
             deadline = deadline,
-            h_func = h_func,
+            h_func_global = h_func,
             kwargs...,
         )
         isnothing(backup_plan) && return begin
@@ -165,7 +165,8 @@ function find_backup_plan(
     solution::Solution,
     event::Event;
     deadline::Union{Nothing,Deadline} = nothing,
-    h_func::Function = gen_h_func(ins),
+    h_func_global::Function = gen_h_func(ins),
+    use_aggressive_h_func::Bool = false,
     kwargs...,
 )::Union{Nothing,Plan}
     N = length(solution)
@@ -183,6 +184,15 @@ function find_backup_plan(
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
+    # h-value
+    h_func = h_func_global
+    if use_aggressive_h_func
+        dist_table = get_distance_table(ins.G, g, crashed_locations)
+        # not reachable -> failure
+        dist_table[s] > length(ins.G) && return nothing
+        h_func = (v) -> dist_table[v]
+    end
+
 
     table = FragmentTable()
     for j in correct_agents, plan_j in solution[j]
@@ -223,7 +233,8 @@ function find_backup_plan(
     ;
     deadline::Union{Nothing,Deadline} = nothing,
     timestep_limit::Union{Nothing,Int} = nothing,
-    h_func::Function = gen_h_func(ins),
+    h_func_global::Function = (v) -> 0,
+    use_aggressive_h_func::Bool = false,
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -236,11 +247,21 @@ function find_backup_plan(
     original_plan_i = solution[i][event.effect.plan_id]
     # new start & goal
     s = original_plan_i.path[offset]
+    g = ins.goals[i]
     # crashes must be handled
     crashes = vcat(original_plan_i.crashes, event.crash)
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
+
+    # h-value
+    h_func = h_func_global
+    if use_aggressive_h_func
+        dist_table = get_distance_table(ins.G, g, crashed_locations)
+        # not reachable -> failure
+        dist_table[s] > length(ins.G) && return nothing
+        h_func = (v) -> dist_table[v]
+    end
 
     invalid =
         (S_from, S_to) -> begin
@@ -267,10 +288,10 @@ function find_backup_plan(
     path = timed_pathfinding(
         G = ins.G,
         start = s,
-        check_goal = (S) -> S.v == ins.goals[i],
+        check_goal = (S) -> S.v == g,
         invalid = invalid,
         deadline = deadline,
-        h_func = h_func(i),
+        h_func = h_func,
     )
     isnothing(path) && return nothing
     path = vcat(original_plan_i.path[1:offset-1], path)

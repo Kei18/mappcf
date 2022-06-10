@@ -1,4 +1,8 @@
-function get_distance_table(G::Graph, goal::Int)::Vector{Int}
+function get_distance_table(
+    G::Graph,
+    goal::Int,
+    prohibited_locs::Vector{Int} = Vector{Int}(),
+)::Vector{Int}
     table = fill(typemax(Int), length(G))
     OPEN = Queue{Int}()
 
@@ -13,6 +17,7 @@ function get_distance_table(G::Graph, goal::Int)::Vector{Int}
 
         # expand
         for u_id in get_neighbors(G, loc)
+            u_id in prohibited_locs && continue
             g = d + 1
             # update distance
             if g < table[u_id]

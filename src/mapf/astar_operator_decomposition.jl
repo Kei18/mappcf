@@ -19,9 +19,9 @@ function astar_operator_decomposition(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    VERBOSE::Int = 0,
+    kwargs...,
 )::Union{Nothing,Paths}
-    return search(
+    return search(;
         initial_node = get_initial_AODNode(starts, h_func),
         invalid = gen_invalid_AOD(goals; timestep_limit = timestep_limit),
         check_goal = (S) -> S.Q == goals && S.next == 1,
@@ -30,7 +30,7 @@ function astar_operator_decomposition(
         get_node_score = (S) -> S.f,
         backtrack = backtrack_AOD,
         deadline = deadline,
-        VERBOSE = VERBOSE,
+        kwargs...,
     )
 end
 
