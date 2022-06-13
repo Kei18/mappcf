@@ -51,9 +51,7 @@ function prioritized_planning(
 
 
         h_func_i = h_func(i)
-        h_func_i_tiebreak = (v) -> begin
-            h_func_i(v) + (1 - 1e2 - used_cnt_table[v] / 1e2)
-        end
+        h_func_i_tiebreak = (v) -> h_func_i(v) + used_cnt_table[v] / 100
 
         path = timed_pathfinding(
             G = G,

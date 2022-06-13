@@ -23,18 +23,18 @@ function planner1(
 
     # identify intersections
     U = get_initial_unresolved_events(ins, solution)
+    VERBOSE > 0 && @printf("initial unresolved list:%04d\n", length(U))
 
     # main loop
     loop_cnt = 0
     while !isempty(U)
         loop_cnt += 1
-        VERBOSE > 0 && @printf("\rresolved=%04d/%04d", loop_cnt, length(U))
+        VERBOSE > 0 && @printf("\rresolved:%04d\tunresolved:%04d", loop_cnt, length(U))
 
         is_expired(deadline) && return FAILURE_TIMEOUT
         event = popfirst!(U)
-        # avoid duplication
-        haskey(solution[event.effect.who][event.effect.plan_id].backup, event.crash) &&
-            continue
+        # avoid duplication & no more crashes
+        !is_backup_required(ins, solution, event) && continue
         # compute backup paths
         backup_plan = find_backup_plan(
             ins,
@@ -45,14 +45,26 @@ function planner1(
             kwargs...,
         )
         isnothing(backup_plan) && return begin
-            VERBOSE > 0 && println()
+            VERBOSE > 0 && println("\nno backup path")
             is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_BACKUP_PATH
         end
         register!(solution, event, backup_plan)
         # append new intersections
         U = vcat(U, get_new_unresolved_events(ins, solution, backup_plan))
     end
+
+    VERBOSE > 0 && @printf("\rresolved:%04d\tunresolved:%04d\n", loop_cnt, length(U))
     return solution
+end
+
+function is_backup_required(ins::Instance, solution::Solution, event::Event)::Bool
+    backup_required_plan = solution[event.effect.who][event.effect.plan_id]
+    haskey(backup_required_plan.backup, event.crash) && return false
+
+    # # the following is unnecessary, check function "add_event!"
+    # is_no_more_crash(ins, backup_required_plan.crashes) && return false
+
+    return true
 end
 
 function get_initial_solution(
@@ -185,6 +197,12 @@ function find_backup_plan(
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
+
+    @assert(
+        isnothing(ins.max_num_crashes) || length(crashes) <= ins.max_num_crashes,
+        "no more crash"
+    )
+
     # h-value
     h_func = h_func_global
     if use_aggressive_h_func
@@ -254,6 +272,11 @@ function find_backup_plan(
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
     crashed_locations = map(c -> c.loc, crashes)
+
+    @assert(
+        isnothing(ins.max_num_crashes) || length(crashes) <= ins.max_num_crashes,
+        "no more crash"
+    )
 
     # h-value
     h_func = h_func_global(i)
