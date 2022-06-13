@@ -26,6 +26,23 @@ function find_first_element(fn::Function, A::Vector{T})::Union{Nothing,T} where 
     return isnothing(index) ? nothing : A[index]
 end
 
+function verbose(
+    VERBOSE::Int,
+    level::Int,
+    deadline::Union{Nothing,Deadline},
+    msg::String;
+    CR::Bool = false,
+    LF::Bool = true,
+)::Nothing
+    VERBOSE < level && return nothing
+    CR && print("\r")
+    !isnothing(deadline) &&
+        print("elapased: ", round(elapsed_sec(deadline), digits = 3), " sec\t")
+    print(msg)
+    LF && print("\n")
+    nothing
+end
+
 abstract type SearchNode end
 
 function search(;

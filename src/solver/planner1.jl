@@ -1,8 +1,7 @@
 function planner1(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP_repeat :
-                                         SeqRPP_repeat,
+    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP : SeqRPP,
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
@@ -19,19 +18,36 @@ function planner1(
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
-    isnothing(solution) && return FAILURE_NO_INITIAL_SOLUTION
+    if isnothing(solution)
+        verbose(VERBOSE, 1, deadline, "failed to find initial solution")
+        return FAILURE_NO_INITIAL_SOLUTION
+    end
+    verbose(VERBOSE, 1, deadline, "initial paths are found")
 
     # identify intersections
     U = get_initial_unresolved_events(ins, solution)
-    VERBOSE > 0 && @printf("initial unresolved list:%04d\n", length(U))
+    verbose(VERBOSE, 1, deadline, @sprintf("initial unresolved events: %04d", length(U)))
 
     # main loop
     loop_cnt = 0
     while !isempty(U)
         loop_cnt += 1
-        VERBOSE > 0 && @printf("\rresolved:%04d\tunresolved:%04d", loop_cnt, length(U))
+        verbose(
+            VERBOSE,
+            2,
+            deadline,
+            @sprintf("resolved: %04d\tunresolved: %04d", loop_cnt, length(U));
+            CR = true,
+            LF = false,
+        )
 
-        is_expired(deadline) && return FAILURE_TIMEOUT
+        # check time limit
+        if is_expired(deadline)
+            VERBOSE > 1 && print("\n")
+            verbose(VERBOSE, 1, deadline, "reaching time limit")
+            return FAILURE_TIMEOUT
+        end
+
         event = popfirst!(U)
         # avoid duplication & no more crashes
         !is_backup_required(ins, solution, event) && continue
@@ -44,16 +60,26 @@ function planner1(
             h_func_global = h_func,
             kwargs...,
         )
-        isnothing(backup_plan) && return begin
-            VERBOSE > 0 && println("\nno backup path")
-            is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_BACKUP_PATH
+
+        # failed to find backup plan
+        if isnothing(backup_plan)
+            VERBOSE > 1 && print("\n")
+            if is_expired(deadline)
+                verbose(VERBOSE, 1, deadline, "reaching time limit")
+                return FAILURE_TIMEOUT
+            else
+                verbose(VERBOSE, 1, deadline, "failed to find backup path")
+                return FAILURE_NO_BACKUP_PATH
+            end
         end
-        register!(solution, event, backup_plan)
+
         # append new intersections
+        register!(solution, event, backup_plan)
         U = vcat(U, get_new_unresolved_events(ins, solution, backup_plan))
     end
 
-    VERBOSE > 0 && @printf("\rresolved:%04d\tunresolved:%04d\n", loop_cnt, length(U))
+    VERBOSE > 1 && print("\n")
+    verbose(VERBOSE, 1, deadline, "found solution")
     return solution
 end
 

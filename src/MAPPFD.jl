@@ -5,6 +5,7 @@ export
     Deadline,
     generate_deadline,
     is_expired,
+    verbose,
     # graph
     Graph,
     Vertex,
