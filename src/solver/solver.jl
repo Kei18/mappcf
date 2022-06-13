@@ -60,7 +60,7 @@ Base.show(io::IO, e::SeqEffect) =
     print(io, "SeqEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))")
 
 @enum Failure begin
-    FAILURE
+    FAILURE_OTHERS
     FAILURE_TIMEOUT
     FAILURE_NO_INITIAL_SOLUTION
     FAILURE_NO_BACKUP_PATH

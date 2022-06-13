@@ -15,7 +15,7 @@ function planner1(
         multi_agent_path_planner;
         deadline = deadline,
         h_func = h_func,
-        VERBOSE = VERBOSE - 1,
+        VERBOSE = VERBOSE,
         kwargs...,
     )
     if isnothing(solution)
@@ -104,7 +104,7 @@ function get_initial_solution(
 )::Union{Solution,Nothing}
     primary_paths = multi_agent_path_planner(
         ins;
-        VERBOSE = VERBOSE,
+        VERBOSE = VERBOSE - 2,
         deadline = deadline,
         h_func = h_func,
         kwargs...,
@@ -280,6 +280,7 @@ function find_backup_plan(
     timestep_limit::Union{Nothing,Int} = nothing,
     h_func_global::Function = (v) -> 0,
     use_aggressive_h_func::Bool = false,
+    avoid_duplicates_backup::Bool = false,
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -304,14 +305,29 @@ function find_backup_plan(
         "no more crash"
     )
 
-    # h-value
-    h_func = h_func_global(i)
-    if use_aggressive_h_func
-        dist_table = get_distance_table(ins.G, g, crashed_locations)
-        # not reachable -> failure
-        dist_table[s] > length(ins.G) && return nothing
-        h_func = (v) -> dist_table[v]
+    used_cnt_table = fill(0, length(ins.G))
+    if avoid_duplicates_backup
+        for j in correct_agents, plan_j in solution[j]
+            if length(plan_j.path) < offset
+                used_cnt_table[last(plan_j.path)] += 1
+            else
+                foreach(v -> used_cnt_table[v] += 1, plan_j.path)
+            end
+        end
     end
+
+    # h-value
+    h_func = begin
+        if use_aggressive_h_func
+            dist_table = get_distance_table(ins.G, g, crashed_locations)
+            # not reachable -> failure
+            dist_table[s] > length(ins.G) && return nothing
+            (v) -> dist_table[v] + used_cnt_table[v] / 100
+        else
+            (v) -> h_func_global(i)(v) + +used_cnt_table[v] / 100
+        end
+    end
+
 
     invalid =
         (S_from, S_to) -> begin
