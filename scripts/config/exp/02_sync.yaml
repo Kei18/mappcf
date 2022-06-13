@@ -1,40 +1,40 @@
 root: ../data/exp/
 
 seed_offset: 0
-save_plot: false
+save_plot: true
 
 instances:
   _target_: generate_multiple_random_sync_instance_grid_wellformed
-  num: 5
-  # N_min: 3
-  # N_max: 8
-  N: 6
-  width: 8
-  height: 8
+  num: 1
+  N_min: 10
+  N_max: 30
+  # N: 5
+  width: 30
+  height: 30
   occupancy_rate: 0
-  max_num_crashes_min: 0
-  max_num_crashes_max: 5
+  max_num_crashes: 1
 
 solvers_common: &solvers_common
   VERBOSE: 0
-  timestep_limit: 30
+  timestep_limit: 100
 
-time_limit_sec: 3
+time_limit_sec: 5
 
 solvers:
   - _target_: MAPPFD.planner1
     <<: *solvers_common
     multi_agent_path_planner:
-      _target_: MAPPFD.Solver.astar_operator_decomposition
+      _target_: MAPPFD.Solver.RPP
+      avoid_duplicates: true
   - _target_: MAPPFD.planner1
     <<: *solvers_common
     multi_agent_path_planner:
       _target_: MAPPFD.Solver.RPP
-
+      avoid_duplicates: false
 
 verification:
   _target_: approx_verify_with_local_FD
-  max_activation: 30
+  max_activation: 100
   num_repetition: 10
   failure_prob: 0.2
 
