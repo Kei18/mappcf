@@ -246,3 +246,54 @@ function open_result_dir(csv_filename::String)::Nothing
     run(`open $dir`)
     nothing
 end
+
+function plot_failure_reasons(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+)::Nothing
+
+    df = CSV.File(csv_filename) |> DataFrame
+    for df_sub in groupby(df, :solver_index)
+        arr_max_num_crashes =
+            df_sub |> @map(_.max_num_crashes) |> @unique() |> collect |> sort
+        arr_failure_type =
+            df_sub |>
+            @filter(!isna(_.failure_type)) |>
+            @map(_.failure_type) |>
+            @unique() |>
+            x -> get.(x) |> collect |> sort
+        D = fill(0.0, (length(arr_max_num_crashes), length(arr_failure_type)))
+        for (k, max_num_crashes) in enumerate(arr_max_num_crashes)
+            for (l, failure_type) in enumerate(arr_failure_type)
+                y =
+                    df_sub |>
+                    @filter(
+                        _.max_num_crashes == max_num_crashes &&
+                        _.failure_type == failure_type
+                    ) |>
+                    @count
+                y_total = df_sub |> @filter(_.max_num_crashes == max_num_crashes) |> @count
+                D[k, l] = y / y_total
+            end
+        end
+        label = reshape(
+            map(s -> string(s)[9:end], arr_failure_type),
+            (1, length(arr_failure_type)),
+        )
+        groupedbar(
+            D,
+            bar_position = :stack,
+            xticks = arr_max_num_crashes,
+            label = label,
+            legend = :topleft,
+            xlabel = "max_num_crashes",
+            ylabel = "failure rate",
+            ylims = (0, 1),
+            barwidth = 0.3,
+        )
+        safe_savefig!(
+            joinpath(result_dir, "failure-reason_solver-$(df_sub[1, :solver_index]).pdf"),
+        )
+    end
+end
