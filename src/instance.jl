@@ -175,9 +175,16 @@ end
 
 function generate_multiple_random_sync_instance_grid_wellformed(;
     num::Int,
+    VERBOSE::Int = 0,
     kwargs...,
 )::Vector{SyncInstance}
-    return map(i -> generate_random_sync_instance_grid_wellformed(; kwargs...), 1:num)
+    instances = Vector{SyncInstance}()
+    for k = 1:num
+        push!(instances, generate_random_sync_instance_grid_wellformed(; kwargs...))
+        VERBOSE > 0 && print("\r$k/$num instances are generated")
+    end
+    VERBOSE > 0 && print("\n")
+    return instances
 end
 
 function generate_multiple_random_seq_instance_grid_wellformed(;

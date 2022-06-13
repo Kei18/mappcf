@@ -23,9 +23,14 @@ function prioritized_planning(
     collision_table = []
     used_cnt_table = fill(0, K)
 
-    for i in planning_order
-        VERBOSE > 1 && println(
-            "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\tagent-$(i) starts planning",
+    for (k, i) in enumerate(planning_order)
+        verbose(
+            VERBOSE,
+            1,
+            deadline,
+            "$(k)/$(N)\tagent-$(i) starts planning";
+            CR = true,
+            LF = false,
         )
         invalid =
             (S_from, S_to) -> begin
@@ -65,9 +70,8 @@ function prioritized_planning(
 
         # failure case
         if isnothing(path)
-            VERBOSE > 0 && println(
-                "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\tagent-$(i) fails to find a path",
-            )
+            VERBOSE > 0 && print("\n")
+            verbose(VERBOSE, 1, deadline, "agent-$(i) fails to find a path")
             return nothing
         end
 
@@ -92,6 +96,9 @@ function prioritized_planning(
         end
     end
 
+    VERBOSE > 0 && print("\n")
+    verbose(VERBOSE, 1, deadline, "finish prioritized planning")
+
     return paths
 end
 
@@ -111,9 +118,7 @@ function PP_repeat(
     iter_cnt = 0
     while !is_expired(deadline)
         iter_cnt += 1
-        VERBOSE > 0 && println(
-            "elapsed: $(round(elapsed_sec(deadline), digits=3)) s\titer:$(iter_cnt)",
-        )
+        verbose(VERBOSE, 1, deadline, "iter-$(iter_cnt) starts")
         paths = prioritized_planning(
             args...;
             planning_order = randperm(N),

@@ -4,7 +4,7 @@ export Effect, planner1, planner2, Failure
 
 import Base: @kwdef
 import Base.Iterators: product
-import Printf: @printf
+import Printf: @printf, @sprintf
 import ..MAPPFD:
     Graph,
     Path,
@@ -23,8 +23,10 @@ import ..MAPPFD:
     Deadline,
     generate_deadline,
     is_expired,
+    elapsed_sec,
     gen_h_func,
     is_no_more_crash,
+    verbose,
     MAPF,
     OTIMAPP
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding, get_distance_table
@@ -58,7 +60,7 @@ Base.show(io::IO, e::SeqEffect) =
     print(io, "SeqEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))")
 
 @enum Failure begin
-    FAILURE
+    FAILURE_OTHERS
     FAILURE_TIMEOUT
     FAILURE_NO_INITIAL_SOLUTION
     FAILURE_NO_BACKUP_PATH

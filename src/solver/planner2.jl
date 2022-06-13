@@ -9,17 +9,19 @@ function planner2(
     h_func = gen_h_func(ins),
     kwargs...,
 )::Union{Failure,Solution}
-    return flatten_recursive_solution(
-        planner2(
-            ins,
-            ins.starts,
-            multi_agent_path_planner;
-            VERBOSE = VERBOSE,
-            deadline = deadline,
-            h_func = h_func,
-            kwargs...,
-        ),
+    res = planner2(
+        ins,
+        ins.starts,
+        multi_agent_path_planner;
+        VERBOSE = VERBOSE,
+        deadline = deadline,
+        h_func = h_func,
+        kwargs...,
     )
+    !isa(res, RecursiveSolution) && return res
+    verbose(VERBOSE, 1, deadline, "flatten recursive solution")
+    solution = flatten_recursive_solution(res)
+    return solution
 end
 
 @kwdef mutable struct RecursiveSolution
@@ -59,9 +61,17 @@ function planner2(
         VERBOSE = VERBOSE - 1,
         kwargs...,
     )
-    isnothing(paths) && return begin
-        is_expired(deadline) ? FAILURE_TIMEOUT :
-        (isempty(crashes) ? FAILURE_NO_INITIAL_SOLUTION : FAILURE_NO_BACKUP_PATH)
+    if isnothing(paths)
+        if is_expired(deadline)
+            verbose(VERBOSE, 1, deadline, "reaching time limit")
+            return FAILURE_TIMEOUT
+        elseif isempty(crashes)
+            verbose(VERBOSE, 1, deadline, "failed to find initial solution")
+            return FAILURE_NO_INITIAL_SOLUTION
+        else
+            verbose(VERBOSE, 1, deadline, "failed to find backup paths")
+            return FAILURE_NO_BACKUP_PATH
+        end
     end
 
     # identify critical sections
@@ -70,7 +80,7 @@ function planner2(
     backup = Dict()
     for event in U
         # recursive call
-        backup[event.crash] = planner2(
+        res = planner2(
             ins,
             map(path -> get_in_range(path, event.crash.when - offset + 1), paths),
             multi_agent_path_planner,
@@ -83,12 +93,14 @@ function planner2(
             kwargs...,
         )
         # failed to find backup path
-        if isa(backup[event.crash], Failure)
+        if isa(res, Failure)
+            verbose(VERBOSE, 2, deadline, "add constraints $(event.effect)")
             # update constrains
             push!(constraints, event.effect)
             # re-planning
             @goto START_PLANNING
         end
+        backup[event.crash] = res
     end
     return RecursiveSolution(paths = paths, offset = offset, backup = backup)
 end
@@ -134,8 +146,16 @@ function get_new_unresolved_events(paths::Paths, offset::Int = 1)::Vector{Event}
         # new critical section is found
         for (j, t_j) in get!(table, v, [])
             j == i && continue
-            e = get_sync_event(; v = v, i = i, j = j, t_i = t_i, t_j = t_j, offset = offset)
-            push!(U, e)
+            @assert(t_i != t_j, "collision occurs")
+            if t_i < t_j
+                c_i = SyncCrash(who = i, loc = v, when = t_i + offset - 1)
+                e_j = SyncEffect(who = j, when = t_j + offset - 1, loc = v, plan_id = 1)
+                push!(U, Event(crash = c_i, effect = e_j))
+            elseif t_j < t_i
+                c_j = SyncCrash(who = j, loc = v, when = t_j + offset - 1)
+                e_i = SyncEffect(who = i, when = t_i + offset - 1, loc = v, plan_id = 1)
+                push!(U, Event(crash = c_j, effect = e_i))
+            end
         end
         push!(table[v], (i, t_i))
     end
