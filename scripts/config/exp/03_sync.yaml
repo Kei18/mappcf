@@ -29,10 +29,13 @@ time_limit_sec: 5
 solvers:
   - _target_: MAPPFD.planner1
     <<: *solvers_common
-    search_style: "DFS"
+    search_style: "BFS"
   - _target_: MAPPFD.planner1
     <<: *solvers_common
-    search_style: "BFS"
+    search_style: "WHEN"
+  - _target_: MAPPFD.planner1
+    <<: *solvers_common
+    search_style: "M_WHEN"
 
 verification:
   _target_: approx_verify_with_local_FD
@@ -42,8 +45,6 @@ verification:
 
 visualization:
   _target_: plot_solution
-  show_vertex_id: true
-  show_agent_id: true
   markersize: 4
 
 summary:
@@ -54,3 +55,4 @@ summary:
   - _target_: plot_success_rate_vs_max_num_crashes
   - _target_: plot_failure_reasons
   - _target_: open_result_dir
+  - _target_: plot_N_vs_runtime

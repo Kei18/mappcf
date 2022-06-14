@@ -1,7 +1,7 @@
 root: ../data/exp/
 
 seed_offset: 0
-save_plot: true
+VERBOSE: 1
 
 instances:
   _target_: generate_multiple_random_sync_instance_grid_wellformed
@@ -14,7 +14,7 @@ instances:
   height: 30
   occupancy_rate: 0
   max_num_crashes_min: 1
-  max_num_crashes_max: 3
+  max_num_crashes_max: 5
 
 solvers_common: &solvers_common
   VERBOSE: 0
@@ -47,6 +47,10 @@ verification:
   max_activation: 100
   num_repetition: 10
   failure_prob: 0.2
+
+visualization:
+  _target_: plot_solution
+  markersize: 4
 
 summary:
   - _target_: describe_simply
