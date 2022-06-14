@@ -262,7 +262,7 @@ function plot_failure_reasons(
             @filter(!isna(_.failure_type)) |>
             @map(_.failure_type) |>
             @unique() |>
-            x -> get.(x) |> collect |> sort
+            x -> get.(x) |> collect
         D = fill(0.0, (length(arr_max_num_crashes), length(arr_failure_type)))
         for (k, max_num_crashes) in enumerate(arr_max_num_crashes)
             for (l, failure_type) in enumerate(arr_failure_type)

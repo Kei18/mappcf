@@ -1,3 +1,24 @@
+@kwdef mutable struct EventQueue
+    body::PriorityQueue{Event,Real} = PriorityQueue{Event,Real}()
+    f::Function = (e::Event, U::EventQueue) -> length(U) + 1
+end
+
+function enqueue!(U::EventQueue, e::Event)
+    !haskey(U.body, e) && enqueue!(U.body, e, U.f(e, U))
+end
+
+function dequeue!(U::EventQueue)::Union{Nothing,Event}
+    return dequeue!(U.body)
+end
+
+function length(U::EventQueue)::Int
+    return length(U.body)
+end
+
+function isempty(U::EventQueue)::Bool
+    return isempty(U.body)
+end
+
 function planner1(
     ins::Instance,
     ;
@@ -7,6 +28,8 @@ function planner1(
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
+    search_style::String = "DFS",
+    event_queue_func = gen_event_queue_func(search_style),
     kwargs...,
 )::Union{Failure,Solution}
     # get initial solution
@@ -24,9 +47,12 @@ function planner1(
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
+    # setup event queue
+    U = EventQueue(f = event_queue_func)
     # identify intersections
-    U = get_initial_unresolved_events(ins, solution)
-    verbose(VERBOSE, 1, deadline, @sprintf("initial unresolved events: %04d", length(U)))
+    setup_initial_unresolved_events!(ins, solution, U)
+    verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
+    verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
 
     # main loop
     loop_cnt = 0
@@ -38,7 +64,7 @@ function planner1(
             deadline,
             @sprintf("resolved: %04d\tunresolved: %04d", loop_cnt, length(U));
             CR = true,
-            LF = false,
+            LF = VERBOSE > 2,
         )
 
         # check time limit
@@ -48,7 +74,8 @@ function planner1(
             return FAILURE_TIMEOUT
         end
 
-        event = popfirst!(U)
+        event = dequeue!(U)
+        verbose(VERBOSE, 3, deadline, "resolving event $(event)")
         # avoid duplication & no more crashes
         !is_backup_required(ins, solution, event) && continue
         # compute backup paths
@@ -63,7 +90,7 @@ function planner1(
 
         # failed to find backup plan
         if isnothing(backup_plan)
-            VERBOSE > 1 && print("\n")
+            VERBOSE == 2 && print("\n")
             if is_expired(deadline)
                 verbose(VERBOSE, 1, deadline, "reaching time limit")
                 return FAILURE_TIMEOUT
@@ -74,13 +101,21 @@ function planner1(
         end
 
         # append new intersections
-        register!(solution, event, backup_plan)
-        U = vcat(U, get_new_unresolved_events(ins, solution, backup_plan))
+        register_new_backup_plan!(solution, event, backup_plan)
+        register_new_unresolved_events!(ins, solution, backup_plan, U)
     end
 
-    VERBOSE > 1 && print("\n")
+    VERBOSE == 2 && print("\n")
     verbose(VERBOSE, 1, deadline, "found solution")
     return solution
+end
+
+function gen_event_queue_func(search_style::String)::Function
+    if search_style == "DFS"
+        return (e::Event, U::EventQueue) -> -(length(U) + 1)
+    else  # default, "BFS"
+        return (e::Event, U::EventQueue) -> length(U) + 1
+    end
 end
 
 function is_backup_required(ins::Instance, solution::Solution, event::Event)::Bool
@@ -107,14 +142,13 @@ function get_initial_solution(
         VERBOSE = VERBOSE - 2,
         deadline = deadline,
         h_func = h_func,
-        kwargs...,
     )
     isnothing(primary_paths) && return nothing
     N = length(primary_paths)
     return map(i -> [Plan(id = 1, who = i, path = primary_paths[i], offset = 1)], 1:N)
 end
 
-function register!(solution::Solution, event::Event, new_plan::Plan)
+function register_new_backup_plan!(solution::Solution, event::Event, new_plan::Plan)
     i = event.effect.who
     plan_id = length(solution[i]) + 1
     new_plan.id = plan_id
@@ -130,9 +164,12 @@ function inconsistent(crashes_i::Vector{Crash}, crashes_j::Vector{Crash})::Bool
     )
 end
 
-function get_initial_unresolved_events(ins::Instance, solution::Solution)::Vector{Event}
+function setup_initial_unresolved_events!(
+    ins::Instance,
+    solution::Solution,
+    U::EventQueue,
+)::Nothing
     N = length(solution)
-    U = Vector{Event}()
     # storing who uses where and when
     table = Dict()
     for i = 1:N, (t_i, v) in enumerate(solution[i][1].path)
@@ -150,14 +187,14 @@ function get_initial_unresolved_events(ins::Instance, solution::Solution)::Vecto
         end
         push!(table[v], (who = i, when = t_i))
     end
-    return U
 end
 
-function get_new_unresolved_events(
+function register_new_unresolved_events!(
     ins::Instance,
     solution::Solution,
     plan_i::Plan,
-)::Vector{Event}
+    U::EventQueue,
+)::Nothing
 
     N = length(solution)
     i = plan_i.who
@@ -173,7 +210,6 @@ function get_new_unresolved_events(
         end
     end
 
-    U = Vector{Event}()
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
         for (j, t_j, plan_j_id) in get!(table, v, [])
@@ -190,8 +226,6 @@ function get_new_unresolved_events(
             )
         end
     end
-
-    return U
 end
 
 
@@ -266,6 +300,32 @@ function find_backup_plan(
     isnothing(path) && return nothing
     path = vcat(original_plan_i.path[1:offset-1], path)
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
+end
+
+function add_event!(
+    U::EventQueue,
+    ins::SeqInstance;
+    v::Int,
+    plan_i::Plan,
+    plan_j::Plan,
+    t_j::Int,
+    t_i::Int,
+)::Nothing
+
+    i = plan_i.who
+    j = plan_j.who
+    @assert(i != j, "add_event!")
+    c_i = SeqCrash(who = i, loc = v)
+    c_j = SeqCrash(who = j, loc = v)
+    if t_i > 1 && !haskey(plan_i.backup, c_j) && can_add_crash(ins, plan_i.crashes)
+        e_i = SeqEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
+        enqueue!(U, Event(crash = c_j, effect = e_i))
+    end
+    if t_j > 1 && !haskey(plan_j.backup, c_i) && can_add_crash(ins, plan_j.crashes)
+        e_j = SeqEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
+        enqueue!(U, Event(crash = c_i, effect = e_j))
+    end
+    nothing
 end
 
 # =============================================================
@@ -362,4 +422,30 @@ function find_backup_plan(
     isnothing(path) && return nothing
     path = vcat(original_plan_i.path[1:offset-1], path)
     return Plan(who = i, path = path, offset = offset, crashes = crashes)
+end
+
+function add_event!(
+    U::EventQueue,
+    ins::SyncInstance;
+    v::Int,
+    plan_i::Plan,
+    plan_j::Plan,
+    t_i::Int,
+    t_j::Int,
+)::Nothing
+
+    i = plan_i.who
+    j = plan_j.who
+    @assert(i != j, "add_event!")
+    @assert(t_i != t_j, "collision occurs")
+    if t_i < t_j && can_add_crash(ins, plan_j.crashes)
+        c_i = SyncCrash(who = i, loc = v, when = t_i)
+        e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
+        enqueue!(U, Event(crash = c_i, effect = e_j))
+    elseif t_j < t_i && can_add_crash(ins, plan_i.crashes)
+        c_j = SyncCrash(who = j, loc = v, when = t_j)
+        e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
+        enqueue!(U, Event(crash = c_j, effect = e_i))
+    end
+    nothing
 end
