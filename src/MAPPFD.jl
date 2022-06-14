@@ -59,6 +59,7 @@ import Base: @kwdef, get
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 using Plots
 import ColorSchemes
+import Base.Threads
 
 include("utils.jl")
 include("graph.jl")
