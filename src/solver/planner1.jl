@@ -29,7 +29,7 @@ function planner1(
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
     search_style::String = "DFS",
-    event_queue_func = gen_event_queue_func(search_style),
+    event_queue_func = gen_event_queue_func(search_style, h_func),
     kwargs...,
 )::Union{Failure,Solution}
     # get initial solution
@@ -110,12 +110,23 @@ function planner1(
     return solution
 end
 
-function gen_event_queue_func(search_style::String)::Function
-    if search_style == "DFS"
-        return (e::Event, U::EventQueue) -> -(length(U) + 1)
-    else  # default, "BFS"
-        return (e::Event, U::EventQueue) -> length(U) + 1
+function gen_event_queue_func(search_style::String, h_func::Function)::Function
+
+    # default, "BFS", queue
+    f = (e::Event, U::EventQueue) -> length(U) + 1
+
+    if search_style == "DFS"  # stuck
+        f = (e::Event, U::EventQueue) -> -(length(U) + 1)
+    elseif search_style == "COST_TO_GO"
+        f = (e::Event, U::EventQueue) -> h_func(e.effect.who)(e.effect.loc)
+    elseif search_style == "M_COST_TO_GO"
+        f = (e::Event, U::EventQueue) -> -h_func(e.effect.who)(e.effect.loc)
+    elseif search_style == "WHEN"
+        f = (e::Event, U::EventQueue) -> e.effect.when
+    elseif search_style == "M_WHEN"
+        f = (e::Event, U::EventQueue) -> -e.effect.when
     end
+    return f
 end
 
 function is_backup_required(ins::Instance, solution::Solution, event::Event)::Bool
