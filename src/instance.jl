@@ -173,23 +173,37 @@ function generate_random_seq_instance_grid_wellformed(;
     )
 end
 
-function generate_multiple_random_sync_instance_grid_wellformed(;
+function generate_multiple_instances(
+    fn::Function;
     num::Int,
     VERBOSE::Int = 0,
     kwargs...,
-)::Vector{SyncInstance}
-    instances = Vector{SyncInstance}()
-    for k = 1:num
-        push!(instances, generate_random_sync_instance_grid_wellformed(; kwargs...))
-        VERBOSE > 0 && print("\r$k/$num instances are generated")
+)::Vector{Instance}
+    instances = Vector{Instance}(undef, num)
+    cnt_fin = Threads.Atomic{Int}(0)
+    Threads.@threads for k = 1:num
+        instances[k] = fn(; kwargs...)
+        Threads.atomic_add!(cnt_fin, 1)
+        VERBOSE > 0 && print("\r$(cnt_fin[])/$num instances are generated")
     end
     VERBOSE > 0 && print("\n")
     return instances
 end
 
+function generate_multiple_random_sync_instance_grid_wellformed(;
+    kwargs...,
+)::Vector{SyncInstance}
+    return generate_multiple_instances(
+        generate_random_sync_instance_grid_wellformed;
+        kwargs...,
+    )
+end
+
 function generate_multiple_random_seq_instance_grid_wellformed(;
-    num::Int,
     kwargs...,
 )::Vector{SeqInstance}
-    return map(i -> generate_random_seq_instance_grid_wellformed(; kwargs...), 1:num)
+    return generate_multiple_instances(
+        generate_random_seq_instance_grid_wellformed;
+        kwargs...,
+    )
 end
