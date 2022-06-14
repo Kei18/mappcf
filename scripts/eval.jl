@@ -19,6 +19,8 @@ function main(config_file::String, args...)
     num_solvers = length(get(config, "solvers", 0))
     num_total_tasks = length(instances) * num_solvers
     verify = parse_fn(config["verification"])
+    visualize =
+        haskey(config, "visualization") ? parse_fn(config["visualization"]) : nothing
     time_limit_sec = get(config, "time_limit_sec", 10)
 
     run =
@@ -64,8 +66,8 @@ function main(config_file::String, args...)
                 if !is_pre_compile &&
                    Threads.nthreads() == 1 &&
                    !isa(solution, Failure) &&
-                   get(config, "save_plot", false)
-                    plot_solution(ins, solution; show_vertex_id = true, show_agent_id = true)
+                   !isnothing(visualize)
+                    visualize(ins, solution)
                     safe_savefig!("$(root_dir)/solution_$(solver_name)-$(l)_$(k).pdf")
                 end
                 Threads.atomic_add!(cnt_fin, 1)
