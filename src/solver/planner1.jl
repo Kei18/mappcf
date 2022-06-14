@@ -48,7 +48,7 @@ function planner1(
             return FAILURE_TIMEOUT
         end
 
-        event = popfirst!(U)
+        event = dequeue!(U)
         # avoid duplication & no more crashes
         !is_backup_required(ins, solution, event) && continue
         # compute backup paths
@@ -74,8 +74,8 @@ function planner1(
         end
 
         # append new intersections
-        register!(solution, event, backup_plan)
-        U = vcat(U, get_new_unresolved_events(ins, solution, backup_plan))
+        register_new_backup_plan!(solution, event, backup_plan)
+        register_new_unresolved_events!(ins, solution, backup_plan, U)
     end
 
     VERBOSE > 1 && print("\n")
@@ -114,7 +114,7 @@ function get_initial_solution(
     return map(i -> [Plan(id = 1, who = i, path = primary_paths[i], offset = 1)], 1:N)
 end
 
-function register!(solution::Solution, event::Event, new_plan::Plan)
+function register_new_backup_plan!(solution::Solution, event::Event, new_plan::Plan)
     i = event.effect.who
     plan_id = length(solution[i]) + 1
     new_plan.id = plan_id
@@ -130,9 +130,12 @@ function inconsistent(crashes_i::Vector{Crash}, crashes_j::Vector{Crash})::Bool
     )
 end
 
-function get_initial_unresolved_events(ins::Instance, solution::Solution)::Vector{Event}
+function get_initial_unresolved_events(
+    ins::Instance,
+    solution::Solution,
+)::PriorityQueue{Event,Real}
     N = length(solution)
-    U = Vector{Event}()
+    U = PriorityQueue{Event,Real}()
     # storing who uses where and when
     table = Dict()
     for i = 1:N, (t_i, v) in enumerate(solution[i][1].path)
@@ -153,11 +156,12 @@ function get_initial_unresolved_events(ins::Instance, solution::Solution)::Vecto
     return U
 end
 
-function get_new_unresolved_events(
+function register_new_unresolved_events!(
     ins::Instance,
     solution::Solution,
     plan_i::Plan,
-)::Vector{Event}
+    U::PriorityQueue{Event,Real},
+)::Nothing
 
     N = length(solution)
     i = plan_i.who
@@ -173,7 +177,6 @@ function get_new_unresolved_events(
         end
     end
 
-    U = Vector{Event}()
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
         for (j, t_j, plan_j_id) in get!(table, v, [])
@@ -190,8 +193,6 @@ function get_new_unresolved_events(
             )
         end
     end
-
-    return U
 end
 
 

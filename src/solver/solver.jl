@@ -5,6 +5,7 @@ export Effect, planner1, planner2, Failure
 import Base: @kwdef
 import Base.Iterators: product
 import Printf: @printf, @sprintf
+import DataStructures: PriorityQueue, enqueue!, dequeue!
 import ..MAPPFD:
     Graph,
     Path,
