@@ -297,3 +297,32 @@ function plot_failure_reasons(
         )
     end
 end
+
+function plot_N_vs_runtime(
+    csv_filename::String;
+    result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+)::Nothing
+
+    df = CSV.File(csv_filename) |> DataFrame
+    for df_sub in groupby(df, :solver_index)
+        plot(xlabel = "N", ylabel = "runtime (sec)", legend = :topleft)
+        for df_subsub in groupby(df_sub, :max_num_crashes)
+            X, Y = [], []
+            arr_N = df_subsub |> @map(_.N) |> collect |> sort
+            for N in arr_N
+                y =
+                    df_subsub |>
+                    @filter(_.N == N && _.solved == true) |>
+                    @map(_.comp_time) |>
+                    collect |>
+                    mean
+                push!(Y, y)
+                push!(X, N)
+            end
+            plot!(X, Y, linewidth = 3, label = "crasehs: $(df_subsub[1,:max_num_crashes])")
+        end
+        safe_savefig!(
+            joinpath(result_dir, "N_vs_runtime_solver-$(df_sub[1, :solver_index]).pdf"),
+        )
+    end
+end
