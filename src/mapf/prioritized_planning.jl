@@ -12,6 +12,7 @@ function prioritized_planning(
     avoid_starts::Bool = false,
     avoid_goals::Bool = false,
     avoid_duplicates::Bool = false,
+    avoid_duplicates_weight::Real = 0.01,
     planning_order = collect(1:length(starts)),
     VERBOSE::Int = 0,
     kwargs...,
@@ -56,7 +57,7 @@ function prioritized_planning(
 
 
         h_func_i = h_func(i)
-        h_func_i_tiebreak = (v) -> h_func_i(v) + used_cnt_table[v] / 100
+        h_func_i_tiebreak = (v) -> h_func_i(v) + used_cnt_table[v] * avoid_duplicates_weight
 
         path = timed_pathfinding(
             G = G,

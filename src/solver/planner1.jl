@@ -275,7 +275,7 @@ function find_backup_plan(
     )
 
     # h-value
-    h_func = h_func_global
+    h_func = h_func_global(i)
     if use_aggressive_h_func
         dist_table = get_distance_table(ins.G, g, crashed_locations)
         # not reachable -> failure
@@ -305,7 +305,7 @@ function find_backup_plan(
         start = s,
         goal = g,
         invalid = invalid,
-        h_func = h_func(i),
+        h_func = h_func,
         deadline = deadline,
     )
     isnothing(path) && return nothing
@@ -352,6 +352,7 @@ function find_backup_plan(
     h_func_global::Function = (v) -> 0,
     use_aggressive_h_func::Bool = false,
     avoid_duplicates_backup::Bool = false,
+    avoid_duplicates_backup_weight::Real = 0.01,
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -393,9 +394,9 @@ function find_backup_plan(
             dist_table = get_distance_table(ins.G, g, crashed_locations)
             # not reachable -> failure
             dist_table[s] > length(ins.G) && return nothing
-            (v) -> dist_table[v] + used_cnt_table[v] / 100
+            (v) -> dist_table[v] + used_cnt_table[v] * avoid_duplicates_backup_weight
         else
-            (v) -> h_func_global(i)(v) + +used_cnt_table[v] / 100
+            (v) -> h_func_global(i)(v) + used_cnt_table[v] * avoid_duplicates_backup_weight
         end
     end
 
