@@ -7,14 +7,16 @@ import Base.Threads
 include("./utils.jl")
 
 function main(config_file::String, args...)
+    timer = Deadline(time_limit_sec = 0)
     res = prepare_exp!(config_file, "exp", args...)
     isnothing(res) && return
     root_dir, config = res
+    VERBOSE = get(config, "VERBOSE", 0)
 
     # instance generation
     seed!(get(config, "seed_offset", 0))
     instances = parse_fn(config["instances"])()
-    @info("generate $(length(instances)) instances")
+    verbose(VERBOSE, 1, timer, "generate $(length(instances)) instances")
 
     num_solvers = length(get(config, "solvers", 0))
     num_total_tasks = length(instances) * num_solvers
@@ -71,10 +73,13 @@ function main(config_file::String, args...)
                     safe_savefig!("$(root_dir)/solution_$(solver_name)-$(l)_$(k).pdf")
                 end
                 Threads.atomic_add!(cnt_fin, 1)
-                !is_pre_compile && @printf(
-                    "\r%04d/%04d tasks have been finished",
-                    cnt_fin[],
-                    num_total_tasks
+                !is_pre_compile && verbose(
+                    VERBOSE,
+                    1,
+                    timer,
+                    "$(cnt_fin[])/$(num_total_tasks) tasks have been finished";
+                    CR = true,
+                    LF = false,
                 )
             end
             !is_pre_compile && println()
@@ -82,20 +87,28 @@ function main(config_file::String, args...)
         end
 
     # pre-compile
-    @info("pre-compiling")
+    verbose(VERBOSE, 1, timer, "pre-compiling")
     run(instances[1:1]; is_pre_compile = true)
-    @info("start $(num_total_tasks) tasks with $(Threads.nthreads()) threads")
+    verbose(
+        VERBOSE,
+        1,
+        timer,
+        "start $(num_total_tasks) tasks with $(Threads.nthreads()) threads",
+    )
     elapsed_exp = @elapsed begin
         result = run(instances)
     end
-    @info("done ($(elapsed_exp) sec), save result")
+    VERBOSE > 0 && println()
+    verbose(VERBOSE, 1, timer, "done ($(elapsed_exp) sec), save result")
     result_filename = joinpath(root_dir, "result.csv")
     CSV.write(result_filename, result)
 
     # stats
     if haskey(config, "summary")
-        @info("compute stats")
+        verbose(VERBOSE, 1, timer, "compute stats")
         foreach(c -> parse_fn(c)(result_filename), config["summary"])
     end
+
+    verbose(VERBOSE, 1, timer, "finish evaluation")
     return :success
 end

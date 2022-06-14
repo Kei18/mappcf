@@ -1,7 +1,7 @@
 root: ../data/exp/
 
+VERBOSE: 1
 seed_offset: 0
-save_plot: true
 
 instances:
   _target_: generate_multiple_random_sync_instance_grid_wellformed
@@ -39,6 +39,12 @@ verification:
   max_activation: 100
   num_repetition: 10
   failure_prob: 0.2
+
+visualization:
+  _target_: plot_solution
+  show_vertex_id: true
+  show_agent_id: true
+  markersize: 4
 
 summary:
   - _target_: describe_simply
