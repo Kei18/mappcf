@@ -31,8 +31,14 @@ macro update_crashes_sync_model!()
                     is_no_more_crash(ins, crashes) && continue
                     is_crashed(crashes, i) && continue
                     rand() > failure_prob && continue
-                    VERBOSE > 0 &&
-                        @info(@sprintf("agent-%d is crashed at loc-%d", i, config[i]))
+                    VERBOSE > 0 && @info(
+                        @sprintf(
+                            "agent-%d is crashed at loc-%d, timestep-%d",
+                            i,
+                            config[i],
+                            current_timestep + 1
+                        )
+                    )
                     push!(
                         crashes,
                         SyncCrash(who = i, when = current_timestep + 1, loc = config[i]),

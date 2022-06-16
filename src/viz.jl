@@ -114,7 +114,13 @@ function plot_instance(ins::Tuple{Graph,Config,Config}; kwargs...)
     return plot_instance(ins...; kwargs...)
 end
 
-function plot_crashes!(G::Graph, config::Config, crashes::Vector{T} where {T<:Crash})
+function plot_crashes!(
+    G::Graph,
+    config::Config,
+    crashes::Vector{T} where {T<:Crash};
+    markersize::Real = 8,
+    kwargs...,
+)
     positions = hcat(
         map(
             k -> get(G, config[k]).pos,
@@ -126,7 +132,7 @@ function plot_crashes!(G::Graph, config::Config, crashes::Vector{T} where {T<:Cr
         positions[1, :],
         positions[2, :],
         label = nothing,
-        markersize = 8,
+        markersize = markersize,
         markershape = :diamond,
         markercolor = :lightgray,
     )
@@ -136,11 +142,10 @@ function plot_config(
     G::Graph,
     config::Config,
     crashes::Vector{T} = Vector{T}();
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
+    kwargs...,
 ) where {T<:Crash}
-    plot_graph(G; show_vertex_id = show_vertex_id)
-    plot_locs!(G, config; show_agent_id = show_agent_id)
+    plot_graph(G; kwargs...)
+    plot_locs!(G, config; kwargs...)
     plot_crashes!(G, config, crashes)
     return plot!()
 end
@@ -216,23 +221,18 @@ end
 function plot_anim(
     G::Graph,
     hist::History;
-    interpolate_nums::Int = 2,
+    interpolate_nums::Int = 0,
     filename::String = "tmp.gif",
     fps::Int64 = 3,
-    show_agent_id::Bool = false,
-    show_vertex_id::Bool = false,
     goals::Union{Nothing,Config} = nothing,
+    VERBOSE::Int = 0,
+    kwargs...,
 )
     N = length(hist[1].config)
     anim = @animate for (k, (config, crashes)) in enumerate(hist)
-        plot_config(
-            G,
-            config,
-            crashes;
-            show_agent_id = show_agent_id,
-            show_vertex_id = show_vertex_id,
-        )
-        !isnothing(goals) && plot_goals!(G, goals)
+        VERBOSE > 0 && print("\rplot configuration of $(k)/$(length(hist))")
+        plot_config(G, config, crashes; kwargs...)
+        !isnothing(goals) && plot_goals!(G, goals; kwargs...)
 
         # plot intermediate status
         if k > 1 && interpolate_nums > 0
@@ -249,6 +249,7 @@ function plot_anim(
             end
         end
     end
+    VERBOSE > 0 && println("\ndone")
     gif(anim, filename; fps = fps)
 end
 
