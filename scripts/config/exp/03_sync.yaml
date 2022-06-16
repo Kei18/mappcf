@@ -20,22 +20,31 @@ solvers_common: &solvers_common
   VERBOSE: 0
   timestep_limit: 100
   avoid_duplicates_backup: true
-  multi_agent_path_planner:
-    _target_: MAPPFD.Solver.RPP
-    avoid_duplicates: true
+  avoid_duplicates_backup_weight: 0.01
 
 time_limit_sec: 5
 
 solvers:
+  # - _target_: MAPPFD.planner1
+  #   <<: *solvers_common
+  #   multi_agent_path_planner:
+  #     _target_: MAPPFD.Solver.RPP
+  #     avoid_duplicates: true
+  #     avoid_duplicates_weight: 0.01
+
   - _target_: MAPPFD.planner1
     <<: *solvers_common
-    search_style: "BFS"
+    multi_agent_path_planner:
+      _target_: MAPPFD.Solver.RPP
+      avoid_duplicates: true
+      avoid_duplicates_weight: 5
+
   - _target_: MAPPFD.planner1
     <<: *solvers_common
-    search_style: "WHEN"
-  - _target_: MAPPFD.planner1
-    <<: *solvers_common
-    search_style: "M_WHEN"
+    multi_agent_path_planner:
+      _target_: MAPPFD.Solver.RPP_refine
+      avoid_duplicates: true
+      avoid_duplicates_weight: 5
 
 verification:
   _target_: approx_verify_with_local_FD

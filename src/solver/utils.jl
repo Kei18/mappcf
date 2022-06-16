@@ -47,3 +47,14 @@ end
 function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
     return OTIMAPP.SeqRPP(ins.G, ins.starts, ins.goals; kwargs...)
 end
+
+function RPP_refine(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
+    return MAPF.PP_refine(
+        ins.G,
+        ins.starts,
+        ins.goals;
+        avoid_starts = true,
+        avoid_goals = true,
+        kwargs...,
+    )
+end
