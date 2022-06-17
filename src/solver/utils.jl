@@ -49,12 +49,5 @@ function SeqRPP(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
 end
 
 function RPP_refine(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
-    return MAPF.PP_refine(
-        ins.G,
-        ins.starts,
-        ins.goals;
-        avoid_starts = true,
-        avoid_goals = true,
-        kwargs...,
-    )
+    return MAPF.RPP_refine(ins.G, ins.starts, ins.goals; kwargs...)
 end
