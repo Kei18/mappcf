@@ -2,7 +2,7 @@ module MAPF
 
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
-import Random: randperm
+import Random: randperm, seed!
 import ..MAPPFD:
     Graph,
     get_neighbors,

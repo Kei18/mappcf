@@ -125,6 +125,8 @@ function gen_event_queue_func(search_style::String, h_func::Function)::Function
         f = (e::Event, U::EventQueue) -> e.effect.when
     elseif search_style == "M_WHEN"
         f = (e::Event, U::EventQueue) -> -e.effect.when
+    elseif search_style == "WHO"
+        f = (e::Event, U::EventQueue) -> e.effect.who + e.effect.when / 1000
     end
     return f
 end
@@ -422,6 +424,14 @@ function find_backup_plan(
             end
             return false
         end
+
+    # cnt_paths = sum(j -> length(solution[j]), correct_agents)
+    # println(
+    #     "agent-$(i)\tbackup:$(length(solution[i]))\tother-paths:$(cnt_paths)"*
+    #         "\tknown-crashes:$(length(original_plan_i.crashes))"*
+    #         "\teffect:$(event.effect)"*
+    #         "\tcrash:$(event.crash)"
+    # )
 
     path = timed_pathfinding(;
         G = ins.G,
