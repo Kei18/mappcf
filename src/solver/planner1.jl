@@ -170,11 +170,22 @@ function register_new_backup_plan!(solution::Solution, event::Event, new_plan::P
 end
 
 
-function inconsistent(crashes_i::Vector{Crash}, crashes_j::Vector{Crash})::Bool
-    return any(
-        e -> e[1].who == e[2].who && e[1].loc != e[2].loc,
-        product(crashes_i, crashes_j),
-    )
+function inconsistent(
+    ins::Instance,
+    crashes_i::Vector{Crash},
+    crashes_j::Vector{Crash},
+)::Bool
+    # check number of observed crashes
+    if !isnothing(ins.max_num_crashes)
+        l = length(Set(vcat(map(c -> c.who, crashes_i), map(c -> c.who, crashes_j))))
+        l >= ins.max_num_crashes && return true
+    end
+
+    # crash for one agent
+    any(e -> e[1].who == e[2].who && e[1].loc != e[2].loc, product(crashes_i, crashes_j)) &&
+        return true
+
+    return false
 end
 
 function setup_initial_unresolved_events!(
@@ -227,7 +238,7 @@ function register_new_unresolved_events!(
         v = plan_i.path[t_i]
         for (j, t_j, plan_j_id) in get!(table, v, [])
             plan_j = solution[j][plan_j_id]
-            inconsistent(plan_i.crashes, plan_j.crashes) && continue
+            inconsistent(ins, plan_i.crashes, plan_j.crashes) && continue
             add_event!(
                 U,
                 ins;
@@ -424,14 +435,6 @@ function find_backup_plan(
             end
             return false
         end
-
-    # cnt_paths = sum(j -> length(solution[j]), correct_agents)
-    # println(
-    #     "agent-$(i)\tbackup:$(length(solution[i]))\tother-paths:$(cnt_paths)"*
-    #         "\tknown-crashes:$(length(original_plan_i.crashes))"*
-    #         "\teffect:$(event.effect)"*
-    #         "\tcrash:$(event.crash)"
-    # )
 
     path = timed_pathfinding(;
         G = ins.G,

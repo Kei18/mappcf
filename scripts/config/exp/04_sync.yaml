@@ -51,4 +51,5 @@ summary:
   - _target_: plot_runtime_vs_max_num_crashes
   - _target_: plot_success_rate_vs_max_num_crashes
   - _target_: plot_failure_reasons
+  - _target_: plot_N_vs_success_rate
   - _target_: open_result_dir

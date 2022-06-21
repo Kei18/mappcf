@@ -321,8 +321,50 @@ function plot_N_vs_runtime(
             end
             plot!(X, Y, linewidth = 3, label = "crasehs: $(df_subsub[1,:max_num_crashes])")
         end
+
+        # all
+        X, Y = [], []
+        arr_N = df_sub |> @map(_.N) |> collect |> sort
+        for N in arr_N
+            y =
+                df_sub |>
+                @filter(_.N == N && _.solved == true) |>
+                @map(_.comp_time) |>
+                collect |>
+                mean
+            push!(Y, y)
+            push!(X, N)
+        end
+        plot!(X, Y, linewidth = 5, color = :black, label = "all")
+
         safe_savefig!(
             joinpath(result_dir, "N_vs_runtime_solver-$(df_sub[1, :solver_index]).pdf"),
         )
     end
+end
+
+function plot_N_vs_success_rate(
+    csv_filename::String;
+    result_filename::String = joinpath(
+        split(csv_filename, "/")[1:end-1]...,
+        "success_rate_per_agents.pdf",
+    ),
+)
+    df = CSV.File(csv_filename) |> DataFrame
+    plot(ylims = (0, 1.0), ylabel = "success rate", xlabel = "N")
+    # all
+    for df_sub in groupby(df, :solver_index)
+        X, Y = [], []
+        arr_N = df_sub |> @map(_.N) |> collect |> sort
+        for N in arr_N
+            y =
+                (df_sub |> @filter(_.N == N && _.solved == true) |> @count) /
+                (df_sub |> @filter(_.N == N) |> @count)
+            push!(Y, y)
+            push!(X, N)
+        end
+        label = "$(df_sub[1,:solver_index]):$(df_sub[1,:solver])"
+        plot!(X, Y, linewidth = 3, label = label)
+    end
+    safe_savefig!(result_filename)
 end
