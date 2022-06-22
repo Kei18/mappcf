@@ -12,9 +12,8 @@ instances:
   width: 30
   height: 30
   occupancy_rate: 0
-  # max_num_crashes_min: 1
-  # max_num_crashes_max: 5
-  max_num_crashes: 2
+  max_num_crashes_min: 1
+  max_num_crashes_max: 5
 
 solvers_common: &solvers_common
   VERBOSE: 0
@@ -48,4 +47,5 @@ summary:
   - _target_: plot_success_rate_vs_max_num_crashes
   - _target_: plot_failure_reasons
   - _target_: plot_N_vs_success_rate
+  - _target_: plot_runtime_profile
   # - _target_: open_result_dir

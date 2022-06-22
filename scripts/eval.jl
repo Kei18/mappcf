@@ -41,7 +41,12 @@ function main(config_file::String, args...)
                 solver_name = solver_info["_target_"]
                 planner = parse_fn(solver_info)
                 t_planning = @elapsed begin
-                    solution = planner(ins; time_limit_sec = time_limit_sec)
+                    runtime_profile = Dict{Symbol,Real}()
+                    solution = planner(
+                        ins;
+                        time_limit_sec = time_limit_sec,
+                        runtime_profile = runtime_profile,
+                    )
                 end
                 verification = verify(ins, solution)
                 if !verification
@@ -64,6 +69,7 @@ function main(config_file::String, args...)
                     verification = verification,
                     comp_time = t_planning,
                     (; get_scores(ins, solution)...)...,
+                    (; runtime_profile...)...,
                 )
                 if !is_pre_compile &&
                    Threads.nthreads() == 1 &&
