@@ -1,32 +1,3 @@
-@kwdef mutable struct EventQueue
-    body::PriorityQueue{Event,Real} = PriorityQueue{Event,Real}()
-    f::Function = (e::Event, U::EventQueue) -> length(U) + 1
-    agents_counts::Dict{Int,Int} = Dict()
-end
-
-function enqueue!(U::EventQueue, e::Event)
-    if !haskey(U.body, e)
-        enqueue!(U.body, e, U.f(e, U))
-
-        # for heuristics
-        i = e.effect.who
-        get!(U.agents_counts, i, 0)
-        U.agents_counts[i] += 1
-    end
-end
-
-function dequeue!(U::EventQueue)::Union{Nothing,Event}
-    return dequeue!(U.body)
-end
-
-function length(U::EventQueue)::Int
-    return length(U.body)
-end
-
-function isempty(U::EventQueue)::Bool
-    return isempty(U.body)
-end
-
 function planner1(
     ins::Instance,
     ;
@@ -38,32 +9,41 @@ function planner1(
     h_func = gen_h_func(ins),
     search_style::String = "DFS",
     event_queue_func = gen_event_queue_func(ins, search_style, h_func),
+    runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
     kwargs...,
 )::Union{Failure,Solution}
     # get initial solution
-    solution = get_initial_solution(
-        ins,
-        multi_agent_path_planner;
-        deadline = deadline,
-        h_func = h_func,
-        VERBOSE = VERBOSE,
-        kwargs...,
-    )
+    runtime_profile[:elapsed_initial_paths] = @elapsed begin
+        solution = get_initial_solution(
+            ins,
+            multi_agent_path_planner;
+            deadline = deadline,
+            h_func = h_func,
+            VERBOSE = VERBOSE,
+            kwargs...,
+        )
+    end
     if isnothing(solution)
         verbose(VERBOSE, 1, deadline, "failed to find initial solution")
         return FAILURE_NO_INITIAL_SOLUTION
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
-    # setup event queue
-    U = EventQueue(f = event_queue_func)
-    # identify intersections
-    setup_initial_unresolved_events!(ins, solution, U)
+    runtime_profile[:elapsed_setup_event_queue] = @elapsed begin
+        # setup event queue
+        U = EventQueue(f = event_queue_func)
+        # identify intersections
+        setup_initial_unresolved_events!(ins, solution, U)
+    end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
     verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
 
+    runtime_profile[:elapsed_find_backup_plan] = 0
+    runtime_profile[:elapsed_identify_new_event] = 0
+
     # main loop
     loop_cnt = 0
+
     while !isempty(U)
         loop_cnt += 1
         verbose(
@@ -86,15 +66,18 @@ function planner1(
         verbose(VERBOSE, 3, deadline, "resolving event $(event)")
         # avoid duplication & no more crashes
         !is_backup_required(ins, solution, event) && continue
-        # compute backup paths
-        backup_plan = find_backup_plan(
-            ins,
-            solution,
-            event;
-            deadline = deadline,
-            h_func_global = h_func,
-            kwargs...,
-        )
+
+        runtime_profile[:elapsed_find_backup_plan] += @elapsed begin
+            # compute backup paths
+            backup_plan = find_backup_plan(
+                ins,
+                solution,
+                event;
+                deadline = deadline,
+                h_func_global = h_func,
+                kwargs...,
+            )
+        end
 
         # failed to find backup plan
         if isnothing(backup_plan)
@@ -109,8 +92,10 @@ function planner1(
         end
 
         # append new intersections
-        register_new_backup_plan!(solution, event, backup_plan)
-        register_new_unresolved_events!(ins, solution, backup_plan, U)
+        runtime_profile[:elapsed_identify_new_event] = @elapsed begin
+            register_new_backup_plan!(solution, event, backup_plan)
+            register_new_unresolved_events!(ins, solution, backup_plan, U)
+        end
     end
 
     VERBOSE == 2 && print("\n")

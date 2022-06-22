@@ -368,3 +368,45 @@ function plot_N_vs_success_rate(
     end
     safe_savefig!(result_filename)
 end
+
+function plot_runtime_profile(
+    csv_filename::String;
+    result_filename::String = joinpath(
+        split(csv_filename, "/")[1:end-1]...,
+        "runtime_profile.pdf",
+    ),
+)
+    df = CSV.File(csv_filename) |> DataFrame
+    D = Vector{Vector{Real}}()
+    labels = nothing
+    for df_sub in groupby(df, :solver_index)
+        df_subsub =
+            df_sub |> @filter(_.solved) |> @select(startswith("elapsed_")) |> DataFrame
+        labels = vcat("others", names(df_subsub))
+        scores = vcat(mean.(eachcol(df_subsub)))
+        push!(
+            D,
+            vcat(
+                (df_sub |> @filter(_.solved) |> @map(_.comp_time) |> mean) - sum(scores),
+                scores,
+            ),
+        )
+    end
+    D = transpose(hcat(D...))
+    solver_names = map(
+        e -> "$(first(e)):$(last(e))",
+        zip(unique(df[:, :solver_index]), string.(unique(df[:, :solver]))),
+    )
+
+    groupedbar(
+        D,
+        bar_position = :stack,
+        bar_width = 0.7,
+        label = reshape(labels, (1, length(labels))),
+        xlabel = "solver",
+        ylabel = "runtime (sec)",
+        xticks = (1:length(unique(df[:, :solver_index])), solver_names),
+        legend = :bottom,
+    )
+    safe_savefig!(result_filename)
+end
