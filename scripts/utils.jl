@@ -393,10 +393,7 @@ function plot_runtime_profile(
         )
     end
     D = transpose(hcat(D...))
-    solver_names = map(
-        e -> "$(first(e)):$(last(e))",
-        zip(unique(df[:, :solver_index]), string.(unique(df[:, :solver]))),
-    )
+    solver_names = map(e -> "$(first(e))", unique(df[:, :solver_index]))
 
     groupedbar(
         D,
@@ -409,4 +406,59 @@ function plot_runtime_profile(
         legend = :bottom,
     )
     safe_savefig!(result_filename)
+end
+
+function plot_success_rate_matrix(
+    csv_filename::String;
+    result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+)
+    df_origin = CSV.File(csv_filename) |> DataFrame
+    for df in groupby(df_origin, :solver_index)
+        N_min = df |> @map(_.N) |> minimum
+        N_max = df |> @map(_.N) |> maximum
+        arr_N = vcat(collect(N_min:5:N_max), N_max)
+        arr_max_num_crashes = df |> @map(_.max_num_crashes) |> @unique() |> collect |> sort
+
+        D = fill(0.0, (length(arr_N) - 1, length(arr_max_num_crashes)))
+        for k = 1:length(arr_N)-1
+            N1, N2 = arr_N[k], arr_N[k+1]
+            for (l, max_num_crashes) in enumerate(arr_max_num_crashes)
+                cnt_total =
+                    df |>
+                    @filter(N1 <= _.N <= N2 && _.max_num_crashes == max_num_crashes) |>
+                    collect |>
+                    length
+                cnt_success =
+                    df |>
+                    @filter(
+                        N1 <= _.N <= N2 &&
+                        _.max_num_crashes == max_num_crashes &&
+                        _.solved == true
+                    ) |>
+                    collect |>
+                    length
+                D[k, l] = cnt_success / cnt_total
+            end
+        end
+
+        solver_name = "$(df[1,:solver_index]):$(df[1,:solver])"
+
+        heatmap(
+            1:size(D, 1),
+            1:size(D, 2),
+            D,
+            xticks = (
+                1:length(arr_N)-1,
+                map(k -> "$(arr_N[k])-$(arr_N[k+1])", 1:length(arr_N)-1),
+            ),
+            ylabel = "max_num_crashes",
+            xlabel = "N",
+            c = :grayC,
+            title = "success_rate of $solver_name",
+        )
+
+        safe_savefig!(
+            joinpath(result_dir, "success_rate_matrix-$(df[1, :solver_index]).pdf"),
+        )
+    end
 end
