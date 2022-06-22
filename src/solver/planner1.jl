@@ -1,10 +1,18 @@
 @kwdef mutable struct EventQueue
     body::PriorityQueue{Event,Real} = PriorityQueue{Event,Real}()
     f::Function = (e::Event, U::EventQueue) -> length(U) + 1
+    agents_counts::Dict{Int,Int} = Dict()
 end
 
 function enqueue!(U::EventQueue, e::Event)
-    !haskey(U.body, e) && enqueue!(U.body, e, U.f(e, U))
+    if !haskey(U.body, e)
+        enqueue!(U.body, e, U.f(e, U))
+
+        # for heuristics
+        i = e.effect.who
+        get!(U.agents_counts, i, 0)
+        U.agents_counts[i] += 1
+    end
 end
 
 function dequeue!(U::EventQueue)::Union{Nothing,Event}
@@ -29,7 +37,7 @@ function planner1(
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
     search_style::String = "DFS",
-    event_queue_func = gen_event_queue_func(search_style, h_func),
+    event_queue_func = gen_event_queue_func(ins, search_style, h_func),
     kwargs...,
 )::Union{Failure,Solution}
     # get initial solution
@@ -110,7 +118,11 @@ function planner1(
     return solution
 end
 
-function gen_event_queue_func(search_style::String, h_func::Function)::Function
+function gen_event_queue_func(
+    ins::Instance,
+    search_style::String,
+    h_func::Function,
+)::Function
 
     # default, "BFS", queue
     f = (e::Event, U::EventQueue) -> length(U) + 1
@@ -127,6 +139,14 @@ function gen_event_queue_func(search_style::String, h_func::Function)::Function
         f = (e::Event, U::EventQueue) -> -e.effect.when
     elseif search_style == "WHO"
         f = (e::Event, U::EventQueue) -> e.effect.who + e.effect.when / 1000
+    elseif search_style == "WHEN_CRASH" && isa(ins, SyncInstance)
+        f = (e::Event, U::EventQueue) -> e.crash.when
+    elseif search_style == "M_WHEN_CRASH" && isa(ins, SyncInstance)
+        f = (e::Event, U::EventQueue) -> -e.crash.when
+    elseif search_style == "CRITICAL_SECTIONS"
+        f = (e::Event, U::EventQueue) -> get!(U.agents_counts, e.effect.who, 0)
+    elseif search_style == "M_CRITICAL_SECTIONS"
+        f = (e::Event, U::EventQueue) -> -get!(U.agents_counts, e.effect.who, 0)
     end
     return f
 end
@@ -435,6 +455,14 @@ function find_backup_plan(
             end
             return false
         end
+
+    # cnt_paths = sum(j -> length(solution[j]), correct_agents)
+    # println(
+    #     "\nagent-$(i)\tbackup:$(length(solution[i]))\tother-paths:$(cnt_paths)"*
+    #         "\tknown-crashes:$(length(original_plan_i.crashes))"*
+    #         "\teffect:$(event.effect)"*
+    #         "\tcrash:$(event.crash)"
+    # )
 
     path = timed_pathfinding(;
         G = ins.G,

@@ -35,11 +35,11 @@ function verbose(
     LF::Bool = true,
 )::Nothing
     VERBOSE < level && return nothing
-    CR && print("\r")
+    CR && Core.print("\r")
     !isnothing(deadline) &&
-        print("elapased: ", round(elapsed_sec(deadline), digits = 3), " sec\t")
+        Core.print("elapased: ", round(elapsed_sec(deadline), digits = 3), " sec\t")
     print(msg)
-    LF && print("\n")
+    LF && Core.print("\n")
     nothing
 end
 
