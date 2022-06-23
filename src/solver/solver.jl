@@ -26,6 +26,7 @@ import ..MAPPFD:
     is_expired,
     elapsed_sec,
     gen_h_func,
+    gen_h_func_wellformed,
     is_no_more_crash,
     verbose,
     MAPF,

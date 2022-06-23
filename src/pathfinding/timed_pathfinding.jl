@@ -4,7 +4,8 @@
     parent::Union{Nothing,TimedNode} = nothing  # parent
     g::Real = 0  # g-value
     h::Real = 0  # h-value
-    f::Real = g + h  # f-value
+    f::Real = g + h * 1.00001 # f-value
+    uuid::Int
 end
 
 function timed_pathfinding(;
@@ -26,13 +27,24 @@ function timed_pathfinding(;
             !isnothing(timestep_limit) && S_to.t > timestep_limit && return true
             return false
         end
+    uuid = 1
 
     return search(;
-        initial_node = TimedNode(v = start, t = 1, h = h_func(start)),
+        initial_node = TimedNode(v = start, t = 1, h = h_func(start), uuid = uuid),
         invalid = invalid_with_timestep_limit,
         check_goal = check_goal,
         get_node_neighbors = (S) -> map(
-            u -> TimedNode(v = u, t = S.t + 1, parent = S, g = S.g + 1, h = h_func(u)),
+            u -> begin
+                uuid += 1
+                TimedNode(
+                    v = u,
+                    t = S.t + 1,
+                    parent = S,
+                    g = S.g + 1,
+                    h = h_func(u),
+                    uuid = uuid,
+                )
+            end,
             vcat(get_neighbors(G, S.v), S.v),
         ),
         get_node_id = (S) -> "$(S.v)-$(S.t)",

@@ -6,8 +6,9 @@ function planner1(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    # h_func = gen_h_func_wellformed(ins),
     h_func = gen_h_func(ins),
-    search_style::String = "DFS",
+    search_style::String = "WHEN",
     event_queue_func = gen_event_queue_func(ins, search_style, h_func),
     runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
     kwargs...,
@@ -109,17 +110,18 @@ function gen_event_queue_func(
     h_func::Function,
 )::Function
 
-    # default, "BFS", queue
-    f = (e::Event, U::EventQueue) -> length(U) + 1
+    # default, "WHEN"
+    f = (e::Event, U::EventQueue) -> e.effect.when
 
-    if search_style == "DFS"  # stuck
+    # the following option may cause bugs (I found a corner case)
+    if search_style == "BFS"
+        f = (e::Event, U::EventQueue) -> length(U) + 1
+    elseif search_style == "DFS"  # stuck
         f = (e::Event, U::EventQueue) -> -(length(U) + 1)
     elseif search_style == "COST_TO_GO"
         f = (e::Event, U::EventQueue) -> h_func(e.effect.who)(e.effect.loc)
     elseif search_style == "M_COST_TO_GO"
         f = (e::Event, U::EventQueue) -> -h_func(e.effect.who)(e.effect.loc)
-    elseif search_style == "WHEN"
-        f = (e::Event, U::EventQueue) -> e.effect.when
     elseif search_style == "M_WHEN"
         f = (e::Event, U::EventQueue) -> -e.effect.when
     elseif search_style == "WHO"
@@ -440,14 +442,6 @@ function find_backup_plan(
             end
             return false
         end
-
-    # cnt_paths = sum(j -> length(solution[j]), correct_agents)
-    # println(
-    #     "\nagent-$(i)\tbackup:$(length(solution[i]))\tother-paths:$(cnt_paths)"*
-    #         "\tknown-crashes:$(length(original_plan_i.crashes))"*
-    #         "\teffect:$(event.effect)"*
-    #         "\tcrash:$(event.crash)"
-    # )
 
     path = timed_pathfinding(;
         G = ins.G,
