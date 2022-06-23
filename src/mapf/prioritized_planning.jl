@@ -141,8 +141,8 @@ function prioritized_planning(
                 2,
                 deadline,
                 "$(k)/$(N)\tagent-$(i) starts planning";
-                CR = true,
-                LF = false,
+                CR = (VERBOSE == 2 ? true : false),
+                LF = (VERBOSE == 2 ? false : true),
             )
             invalid =
                 gen_invalid_pp(i, starts, goals, collision_table, avoid_starts, avoid_goals)

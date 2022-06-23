@@ -4,6 +4,7 @@
     g::Int = 0
     h::Int = 0
     f::Int = g + h
+    uuid::Int
 end
 
 function basic_pathfinding(;
@@ -17,12 +18,17 @@ function basic_pathfinding(;
                                         generate_deadline(time_limit_sec),
     kwargs...,
 )::Union{Nothing,Path}
+
+    uuid = 1
     return search(
-        initial_node = BasicNode(v = start, h = h_func(start)),
+        initial_node = BasicNode(v = start, h = h_func(start), uuid = uuid),
         invalid = invalid,
         check_goal = (S) -> S.v == goal,
         get_node_neighbors = (S) -> map(
-            u -> BasicNode(v = u, parent = S, g = S.g + 1, h = h_func(u)),
+            u -> begin
+                uuid += 1
+                BasicNode(v = u, parent = S, g = S.g + 1, h = h_func(u), uuid = uuid)
+            end,
             get_neighbors(G, S.v),
         ),
         get_node_id = (S) -> S.v,

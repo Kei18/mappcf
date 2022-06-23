@@ -1,7 +1,11 @@
 module Pathfinding
 
 export get_distance_table,
-    get_distance_tables, timed_pathfinding, basic_pathfinding, gen_h_func
+    get_distance_tables,
+    timed_pathfinding,
+    basic_pathfinding,
+    gen_h_func,
+    gen_h_func_wellformed
 
 import Base: @kwdef
 import ..MAPPFD:
