@@ -20,7 +20,7 @@ function basic_pathfinding(;
 )::Union{Nothing,Path}
 
     uuid = 1
-    return search(
+    return search(;
         initial_node = BasicNode(v = start, h = h_func(start), uuid = uuid),
         invalid = invalid,
         check_goal = (S) -> S.v == goal,
@@ -35,5 +35,6 @@ function basic_pathfinding(;
         get_node_score = (S) -> S.f,
         backtrack = backtrack_single_agent,
         deadline = deadline,
+        kwargs...,
     )
 end
