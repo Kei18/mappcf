@@ -96,6 +96,7 @@ function generate_random_instance_grid_wellformed(;
     @assert(N < 2 * K, "too many agents on a graph")
     starts, goals = [], []
 
+
     # produce well-formed start-goal pair
     while length(goals) != N
         random_indexes = randperm(K)
@@ -109,6 +110,9 @@ function generate_random_instance_grid_wellformed(;
                 k += 1
                 g = vertex_ids[random_indexes[k]]
                 g in prohibited && continue
+                dist_table = get_distance_table(G, g)
+                h_func_i = (v) -> dist_table[v]
+
                 path = basic_pathfinding(
                     G = G,
                     start = s,
@@ -118,6 +122,7 @@ function generate_random_instance_grid_wellformed(;
                         S_to.v != s && S_to.v in starts && return true
                         return false
                     end,
+                    h_func = h_func_i,
                 )
                 if !isnothing(path)
                     prohibited = vcat(prohibited, path)

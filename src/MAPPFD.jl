@@ -57,6 +57,7 @@ import Random: seed!, randperm
 import Printf: @printf, @sprintf
 import Base: @kwdef, get
 import DataStructures: PriorityQueue, enqueue!, dequeue!
+import QuickHeaps: FastBinaryHeap
 using Plots
 import ColorSchemes
 import Base.Threads

@@ -20,6 +20,7 @@ import ..MAPPFD:
     gen_h_func,
     elapsed_sec,
     verbose
+import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")
 include("./prioritized_planning.jl")

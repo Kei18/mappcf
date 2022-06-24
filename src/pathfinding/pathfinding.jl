@@ -21,6 +21,7 @@ import ..MAPPFD:
     SyncInstance,
     SeqInstance
 import DataStructures: Queue, PriorityQueue, enqueue!, dequeue!
+import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")
 include("./basic_pathfinding.jl")
