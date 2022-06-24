@@ -7,7 +7,6 @@
     h::Real = 0  # h-value
     f::Real = g + h  # f-value
     timestep::Int = 1
-    uuid::Int
 end
 Base.lt(o::FastForwardOrdering, a::AODNode, b::AODNode) = a.f < b.f
 
@@ -39,7 +38,7 @@ end
 function get_initial_AODNode(starts::Config, h_func::Function)::AODNode
     Q_init = copy(starts)
     h_init = sum(i -> h_func(i)(Q_init[i]), 1:length(starts))
-    return AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init, uuid = 1)
+    return AODNode(Q = Q_init, Q_prev = Q_init, next = 1, h = h_init)
 end
 
 function gen_invalid_AOD(
@@ -103,7 +102,6 @@ function gen_get_node_neighbors_AOD(
 )::Function
 
     N = length(goals)
-    uuid = 1
 
     return (S::AODNode) -> begin
         i = S.next
@@ -112,7 +110,6 @@ function gen_get_node_neighbors_AOD(
         timestep = (j == 1) ? S.timestep + 1 : S.timestep
         return map(
             v_to -> begin
-                uuid += 1
                 AODNode(
                     Q = map(k -> k == i ? v_to : S.Q[k], 1:N),
                     Q_prev = (i == 1) ? copy(S.Q) : copy(S.Q_prev),
@@ -121,7 +118,6 @@ function gen_get_node_neighbors_AOD(
                     h = S.h - h_func(i)(v_from) + h_func(i)(v_to),
                     parent = S,
                     timestep = timestep,
-                    uuid = uuid,
                 )
             end,
             i in fixed_agents ? [v_from] : vcat(get_neighbors(G, v_from), v_from),

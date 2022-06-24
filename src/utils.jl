@@ -11,9 +11,12 @@ function elapsed_sec(d::Deadline)::Float64
     return (Base.time_ns() - d.start) / 1.0e9
 end
 
-function is_expired(d::Union{Nothing,Deadline})::Bool
-    isnothing(d) && return false
+function is_expired(d::Deadline)::Bool
     return elapsed_sec(d) > d.time_limit_sec
+end
+
+function is_expired(d::Nothing)::Bool
+    return false
 end
 
 function get_in_range(A::Vector{T}, index::Int)::T where {T<:Any}
@@ -56,11 +59,12 @@ function search(;
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
+    NameDataType::DataType = Any,
     VERBOSE::Int = 0,
     kwargs...,
 )
     OPEN = FastBinaryHeap{SearchNode}()
-    CLOSED = Dict{Any,Bool}()
+    CLOSED = Dict{NameDataType,Bool}()
 
     # insert initial node
     push!(OPEN, initial_node)
@@ -84,12 +88,14 @@ function search(;
 
         # expand
         for S_new in get_node_neighbors(S)
-            S_new_id = get_node_id(S_new)
-            (haskey(CLOSED, S_new_id) || invalid(S, S_new)) && continue
+            haskey(CLOSED, get_node_id(S_new)) && continue
+            invalid(S, S_new) && continue
             push!(OPEN, S_new)
             expanded_cnt += 1
         end
     end
+
+    verbose(VERBOSE, 1, deadline, "explored: $loop_cnt\texpanded: $expanded_cnt")
 
     # failure
     return nothing
