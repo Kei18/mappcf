@@ -7,6 +7,7 @@
     f::Real = g + h * 1.00001 # f-value
     uuid::Int
 end
+Base.lt(o::FastForwardOrdering, a::TimedNode, b::TimedNode) = a.f < b.f
 
 function timed_pathfinding(;
     G::Graph,
@@ -48,7 +49,6 @@ function timed_pathfinding(;
             vcat(get_neighbors(G, S.v), S.v),
         ),
         get_node_id = (S) -> "$(S.v)-$(S.t)",
-        get_node_score = (S) -> S.f,
         backtrack = backtrack_single_agent,
         deadline = deadline,
     )

@@ -9,6 +9,7 @@
     timestep::Int = 1
     uuid::Int
 end
+Base.lt(o::FastForwardOrdering, a::AODNode, b::AODNode) = a.f < b.f
 
 # pure implementation
 function astar_operator_decomposition(
@@ -29,7 +30,6 @@ function astar_operator_decomposition(
         check_goal = (S) -> S.Q == goals && S.next == 1,
         get_node_neighbors = gen_get_node_neighbors_AOD(G, goals, h_func),
         get_node_id = (S) -> string(S),
-        get_node_score = (S) -> S.f,
         backtrack = backtrack_AOD,
         deadline = deadline,
         kwargs...,

@@ -6,6 +6,7 @@
     f::Int = g + h
     uuid::Int
 end
+Base.lt(o::FastForwardOrdering, a::BasicNode, b::BasicNode) = a.f < b.f
 
 function basic_pathfinding(;
     G::Graph,
@@ -32,7 +33,6 @@ function basic_pathfinding(;
             get_neighbors(G, S.v),
         ),
         get_node_id = (S) -> S.v,
-        get_node_score = (S) -> S.f,
         backtrack = backtrack_single_agent,
         deadline = deadline,
         kwargs...,
