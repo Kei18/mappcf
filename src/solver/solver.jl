@@ -33,11 +33,13 @@ import ..MAPPFD:
     OTIMAPP
 import ..MAPPFD.Pathfinding: timed_pathfinding, basic_pathfinding, get_distance_table
 import ..MAPPFD.OTIMAPP: FragmentTable, potential_deadlock_exists
+import QuickHeaps: FastBinaryHeap, FastForwardOrdering
 
 abstract type Effect end
 @kwdef struct Event
     crash::Crash
     effect::Effect
+    f::Real = 0
 end
 
 @kwdef struct SyncEffect <: Effect

@@ -1,22 +1,21 @@
 @kwdef mutable struct EventQueue
-    body::PriorityQueue{Event,Real} = PriorityQueue{Event,Real}()
-    f::Function = (e::Event, U::EventQueue) -> length(U) + 1
+    body::FastBinaryHeap{Event} = FastBinaryHeap{Event}()
+    f::Function = (c::Crash, e::Effect, U::EventQueue) -> e.when
     agents_counts::Dict{Int,Int} = Dict()
 end
+Base.lt(o::FastForwardOrdering, a::Event, b::Event) = a.f < b.f
 
 function enqueue!(U::EventQueue, e::Event)
-    if !haskey(U.body, e)
-        enqueue!(U.body, e, U.f(e, U))
+    push!(U.body, e)
 
-        # for heuristics
-        i = e.effect.who
-        get!(U.agents_counts, i, 0)
-        U.agents_counts[i] += 1
-    end
+    # for heuristics
+    i = e.effect.who
+    get!(U.agents_counts, i, 0)
+    U.agents_counts[i] += 1
 end
 
 function dequeue!(U::EventQueue)::Union{Nothing,Event}
-    return dequeue!(U.body)
+    return pop!(U.body)
 end
 
 function length(U::EventQueue)::Int

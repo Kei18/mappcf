@@ -110,30 +110,30 @@ function gen_event_queue_func(
 )::Function
 
     # default, "WHEN"
-    f = (e::Event, U::EventQueue) -> e.effect.when
+    f = (c::Crash, e::Effect, U::EventQueue) -> e.when
 
     # the following option may cause bugs (I found a corner case)
-    if search_style == "BFS"
-        f = (e::Event, U::EventQueue) -> length(U) + 1
-    elseif search_style == "DFS"  # stuck
-        f = (e::Event, U::EventQueue) -> -(length(U) + 1)
-    elseif search_style == "COST_TO_GO"
-        f = (e::Event, U::EventQueue) -> h_func(e.effect.who)(e.effect.loc)
-    elseif search_style == "M_COST_TO_GO"
-        f = (e::Event, U::EventQueue) -> -h_func(e.effect.who)(e.effect.loc)
-    elseif search_style == "M_WHEN"
-        f = (e::Event, U::EventQueue) -> -e.effect.when
-    elseif search_style == "WHO"
-        f = (e::Event, U::EventQueue) -> e.effect.who + e.effect.when / 1000
-    elseif search_style == "WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (e::Event, U::EventQueue) -> e.crash.when
-    elseif search_style == "M_WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (e::Event, U::EventQueue) -> -e.crash.when
-    elseif search_style == "CRITICAL_SECTIONS"
-        f = (e::Event, U::EventQueue) -> get!(U.agents_counts, e.effect.who, 0)
-    elseif search_style == "M_CRITICAL_SECTIONS"
-        f = (e::Event, U::EventQueue) -> -get!(U.agents_counts, e.effect.who, 0)
-    end
+    # if search_style == "BFS"
+    #     f = (e::Effect, , U::EventQueue) -> length(U) + 1
+    # elseif search_style == "DFS"  # stuck
+    #     f = (e::Event, U::EventQueue) -> -(length(U) + 1)
+    # elseif search_style == "COST_TO_GO"
+    #     f = (e::Event, U::EventQueue) -> h_func(e.effect.who)(e.effect.loc)
+    # elseif search_style == "M_COST_TO_GO"
+    #     f = (e::Event, U::EventQueue) -> -h_func(e.effect.who)(e.effect.loc)
+    # elseif search_style == "M_WHEN"
+    #     f = (e::Event, U::EventQueue) -> -e.effect.when
+    # elseif search_style == "WHO"
+    #     f = (e::Event, U::EventQueue) -> e.effect.who + e.effect.when / 1000
+    # elseif search_style == "WHEN_CRASH" && isa(ins, SyncInstance)
+    #     f = (e::Event, U::EventQueue) -> e.crash.when
+    # elseif search_style == "M_WHEN_CRASH" && isa(ins, SyncInstance)
+    #     f = (e::Event, U::EventQueue) -> -e.crash.when
+    # elseif search_style == "CRITICAL_SECTIONS"
+    #     f = (e::Event, U::EventQueue) -> get!(U.agents_counts, e.effect.who, 0)
+    # elseif search_style == "M_CRITICAL_SECTIONS"
+    #     f = (e::Event, U::EventQueue) -> -get!(U.agents_counts, e.effect.who, 0)
+    # end
     return f
 end
 
@@ -219,6 +219,7 @@ function setup_initial_unresolved_events!(
     end
 end
 
+# TODO: cache
 function register_new_unresolved_events!(
     ins::Instance,
     solution::Solution,
@@ -231,7 +232,6 @@ function register_new_unresolved_events!(
     correct_agents, = get_correct_crashed_agents(N, i, plan_i.crashes)
 
     # storing who uses where and when
-    # table = fill(Vector{Tuple{Int, Int, Int}}(), length(G))
     table = Dict{Int,Vector{Tuple{Int,Int,Int}}}()  # who, when, where
     for j in correct_agents, plan_j in solution[j]
         any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
@@ -473,11 +473,11 @@ function add_event!(
     if t_i < t_j && can_add_crash(ins, plan_j.crashes)
         c_i = SyncCrash(who = i, loc = v, when = t_i)
         e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        enqueue!(U, Event(crash = c_i, effect = e_j))
+        enqueue!(U, Event(crash = c_i, effect = e_j, f = U.f(c_i, e_j, U)))
     elseif t_j < t_i && can_add_crash(ins, plan_i.crashes)
         c_j = SyncCrash(who = j, loc = v, when = t_j)
         e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        enqueue!(U, Event(crash = c_j, effect = e_i))
+        enqueue!(U, Event(crash = c_j, effect = e_i, f = U.f(c_j, e_i, U)))
     end
     nothing
 end
