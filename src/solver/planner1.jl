@@ -32,8 +32,11 @@ function planner1(
     runtime_profile[:elapsed_setup_event_queue] = @elapsed begin
         # setup event queue
         U = EventQueue(f = event_queue_func)
+        # cache
+        event_table =
+            map(_ -> Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}(), ins.G)
         # identify intersections
-        setup_initial_unresolved_events!(ins, solution, U)
+        setup_initial_unresolved_events!(ins, solution, U, event_table)
     end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
     verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
@@ -94,7 +97,7 @@ function planner1(
         # append new intersections
         runtime_profile[:elapsed_identify_new_event] = @elapsed begin
             register_new_backup_plan!(solution, event, backup_plan)
-            register_new_unresolved_events!(ins, solution, backup_plan, U)
+            register_new_unresolved_events!(ins, solution, backup_plan, U, event_table)
         end
     end
 
@@ -182,14 +185,16 @@ function inconsistent(
     crashes_j::Vector{Crash},
 )::Bool
     # check number of observed crashes
-    if !isnothing(ins.max_num_crashes)
-        l = length(Set(vcat(map(c -> c.who, crashes_i), map(c -> c.who, crashes_j))))
-        l >= ins.max_num_crashes && return true
+    l = length(crashes_i) + length(crashes_j)
+    for c_i in crashes_i
+        for c_j in crashes_j
+            if c_i.who == c_j.who
+                c_i.loc != c_j.loc && return true
+                l -= 1
+            end
+        end
     end
-
-    # crash for one agent
-    any(e -> e[1].who == e[2].who && e[1].loc != e[2].loc, product(crashes_i, crashes_j)) &&
-        return true
+    !isnothing(ins.max_num_crashes) && l >= ins.max_num_crashes && return true
 
     return false
 end
@@ -198,12 +203,12 @@ function setup_initial_unresolved_events!(
     ins::Instance,
     solution::Solution,
     U::EventQueue,
+    event_table::Vector{Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}},
 )::Nothing
     N = length(solution)
     # storing who uses where and when
-    table = Dict()
     for i = 1:N, (t_i, v) in enumerate(solution[i][1].path)
-        for (j, t_j) in get!(table, v, [])
+        for (j, t_j) in event_table[v]
             j == i && continue
             add_event!(
                 U,
@@ -215,37 +220,44 @@ function setup_initial_unresolved_events!(
                 v = v,
             )
         end
-        push!(table[v], (who = i, when = t_i))
+        push!(event_table[v], (who = i, when = t_i, plan_id = 1))
     end
 end
 
-# TODO: cache
 function register_new_unresolved_events!(
     ins::Instance,
     solution::Solution,
     plan_i::Plan,
     U::EventQueue,
+    event_table::Vector{Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}},
 )::Nothing
 
     N = length(solution)
     i = plan_i.who
-    correct_agents, = get_correct_crashed_agents(N, i, plan_i.crashes)
+    correct_agents, crashed_agents = get_correct_crashed_agents(N, i, plan_i.crashes)
 
     # storing who uses where and when
-    table = Dict{Int,Vector{Tuple{Int,Int,Int}}}()  # who, when, where
-    for j in correct_agents, plan_j in solution[j]
-        any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
-        for (t_j, v) in enumerate(plan_j.path)
-            get!(table, v, Vector{Tuple{Int,Int,Int}}())
-            push!(table[v], (j, t_j, plan_j.id))
-        end
-    end
+    # event_table = map(_ -> Vector{@NamedTuple{who::Int, when::Int, plan_id::Int}}(), ins.G)
+    # for j in correct_agents, plan_j in solution[j]
+    #     any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
+    #     for (t_j, v) in enumerate(plan_j.path)
+    #         push!(event_table[v], (who = j, when = t_j, plan_id = plan_j.id))
+    #     end
+    # end
 
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
-        for (j, t_j, plan_j_id) in get!(table, v, [])
+        for (j, t_j, plan_j_id) in event_table[v]
+            j == i && continue
+            # skip crashed agents
+            j in crashed_agents && continue
+            # retrieve plan
             plan_j = solution[j][plan_j_id]
+            # skip if i is assumed to be crashed
+            any(c -> c.who == i, plan_j.crashes) && continue
+            # inconsistency between crashes
             inconsistent(ins, plan_i.crashes, plan_j.crashes) && continue
+            # add event
             add_event!(
                 U,
                 ins;
@@ -256,6 +268,12 @@ function register_new_unresolved_events!(
                 v = v,
             )
         end
+    end
+
+    # update event_table
+    for t_i = plan_i.offset+1:length(plan_i.path)
+        v = plan_i.path[t_i]
+        push!(event_table[v], (who = i, when = t_i, plan_id = plan_i.id))
     end
 end
 
