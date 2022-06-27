@@ -6,7 +6,6 @@ function planner1(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    # h_func = gen_h_func_wellformed(ins),
     h_func = gen_h_func(ins),
     search_style::String = "WHEN",
     event_queue_func = gen_event_queue_func(ins, search_style, h_func),
@@ -232,12 +231,13 @@ function register_new_unresolved_events!(
     correct_agents, = get_correct_crashed_agents(N, i, plan_i.crashes)
 
     # storing who uses where and when
-    table = Dict()
+    # table = fill(Vector{Tuple{Int, Int, Int}}(), length(G))
+    table = Dict{Int,Vector{Tuple{Int,Int,Int}}}()  # who, when, where
     for j in correct_agents, plan_j in solution[j]
         any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
         for (t_j, v) in enumerate(plan_j.path)
-            get!(table, v, [])
-            push!(table[v], (who = j, when = t_j, plan_id = plan_j.id))
+            get!(table, v, Vector{Tuple{Int,Int,Int}}())
+            push!(table[v], (j, t_j, plan_j.id))
         end
     end
 
