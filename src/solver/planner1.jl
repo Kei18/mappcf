@@ -6,7 +6,6 @@ function planner1(
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    # h_func = gen_h_func_wellformed(ins),
     h_func = gen_h_func(ins),
     search_style::String = "WHEN",
     event_queue_func = gen_event_queue_func(ins, search_style, h_func),
@@ -30,11 +29,15 @@ function planner1(
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
-    runtime_profile[:elapsed_setup_event_queue] = @elapsed begin
+    runtime_profile[:elapsed_initial_setup] = @elapsed begin
         # setup event queue
         U = EventQueue(f = event_queue_func)
+        # cache
+        event_table =
+            map(_ -> Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}(), ins.G)
         # identify intersections
-        setup_initial_unresolved_events!(ins, solution, U)
+        setup_initial_unresolved_events!(ins, solution, U, event_table)
+        used_cnt_table::Vector{Int} = fill(0, length(ins.G))
     end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
     verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
@@ -76,6 +79,7 @@ function planner1(
                 event;
                 deadline = deadline,
                 h_func_global = h_func,
+                used_cnt_table = used_cnt_table,
                 kwargs...,
             )
         end
@@ -95,7 +99,7 @@ function planner1(
         # append new intersections
         runtime_profile[:elapsed_identify_new_event] = @elapsed begin
             register_new_backup_plan!(solution, event, backup_plan)
-            register_new_unresolved_events!(ins, solution, backup_plan, U)
+            register_new_unresolved_events!(ins, solution, backup_plan, U, event_table)
         end
     end
 
@@ -111,29 +115,28 @@ function gen_event_queue_func(
 )::Function
 
     # default, "WHEN"
-    f = (e::Event, U::EventQueue) -> e.effect.when
+    f = (c::Crash, e::Effect, U::EventQueue) -> -e.when
 
-    # the following option may cause bugs (I found a corner case)
     if search_style == "BFS"
-        f = (e::Event, U::EventQueue) -> length(U) + 1
+        f = (c::Crash, e::Effect, U::EventQueue) -> length(U) + 1
     elseif search_style == "DFS"  # stuck
-        f = (e::Event, U::EventQueue) -> -(length(U) + 1)
+        f = (c::Crash, e::Effect, U::EventQueue) -> -(length(U) + 1)
     elseif search_style == "COST_TO_GO"
-        f = (e::Event, U::EventQueue) -> h_func(e.effect.who)(e.effect.loc)
+        f = (c::Crash, e::Effect, U::EventQueue) -> h_func(e.who)(e.loc)
     elseif search_style == "M_COST_TO_GO"
-        f = (e::Event, U::EventQueue) -> -h_func(e.effect.who)(e.effect.loc)
+        f = (c::Crash, e::Effect, U::EventQueue) -> -h_func(e.who)(e.loc)
     elseif search_style == "M_WHEN"
-        f = (e::Event, U::EventQueue) -> -e.effect.when
+        f = (c::Crash, e::Effect, U::EventQueue) -> -e.when
     elseif search_style == "WHO"
-        f = (e::Event, U::EventQueue) -> e.effect.who + e.effect.when / 1000
+        f = (c::Crash, e::Effect, U::EventQueue) -> e.who + e.when / 1000
     elseif search_style == "WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (e::Event, U::EventQueue) -> e.crash.when
+        f = (c::Crash, e::Effect, U::EventQueue) -> c.when
     elseif search_style == "M_WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (e::Event, U::EventQueue) -> -e.crash.when
+        f = (c::Crash, e::Effect, U::EventQueue) -> -c.when
     elseif search_style == "CRITICAL_SECTIONS"
-        f = (e::Event, U::EventQueue) -> get!(U.agents_counts, e.effect.who, 0)
+        f = (c::Crash, e::Effect, U::EventQueue) -> get!(U.agents_counts, e.who, 0)
     elseif search_style == "M_CRITICAL_SECTIONS"
-        f = (e::Event, U::EventQueue) -> -get!(U.agents_counts, e.effect.who, 0)
+        f = (c::Crash, e::Effect, U::EventQueue) -> -get!(U.agents_counts, e.who, 0)
     end
     return f
 end
@@ -183,14 +186,16 @@ function inconsistent(
     crashes_j::Vector{Crash},
 )::Bool
     # check number of observed crashes
-    if !isnothing(ins.max_num_crashes)
-        l = length(Set(vcat(map(c -> c.who, crashes_i), map(c -> c.who, crashes_j))))
-        l >= ins.max_num_crashes && return true
+    l = length(crashes_i) + length(crashes_j)
+    for c_i in crashes_i
+        for c_j in crashes_j
+            if c_i.who == c_j.who
+                c_i.loc != c_j.loc && return true
+                l -= 1
+            end
+        end
     end
-
-    # crash for one agent
-    any(e -> e[1].who == e[2].who && e[1].loc != e[2].loc, product(crashes_i, crashes_j)) &&
-        return true
+    !isnothing(ins.max_num_crashes) && l >= ins.max_num_crashes && return true
 
     return false
 end
@@ -199,12 +204,13 @@ function setup_initial_unresolved_events!(
     ins::Instance,
     solution::Solution,
     U::EventQueue,
+    event_table::Vector{Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}},
 )::Nothing
     N = length(solution)
     # storing who uses where and when
-    table = Dict()
     for i = 1:N, (t_i, v) in enumerate(solution[i][1].path)
-        for (j, t_j) in get!(table, v, [])
+        t_i > 1 && v == solution[i][1].path[t_i-1] && continue
+        for (j, t_j) in event_table[v]
             j == i && continue
             add_event!(
                 U,
@@ -216,7 +222,7 @@ function setup_initial_unresolved_events!(
                 v = v,
             )
         end
-        push!(table[v], (who = i, when = t_i))
+        push!(event_table[v], (who = i, when = t_i, plan_id = 1))
     end
 end
 
@@ -225,27 +231,27 @@ function register_new_unresolved_events!(
     solution::Solution,
     plan_i::Plan,
     U::EventQueue,
+    event_table::Vector{Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}},
 )::Nothing
 
     N = length(solution)
     i = plan_i.who
-    correct_agents, = get_correct_crashed_agents(N, i, plan_i.crashes)
-
-    # storing who uses where and when
-    table = Dict()
-    for j in correct_agents, plan_j in solution[j]
-        any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
-        for (t_j, v) in enumerate(plan_j.path)
-            get!(table, v, [])
-            push!(table[v], (who = j, when = t_j, plan_id = plan_j.id))
-        end
-    end
+    correct_agents, crashed_agents = get_correct_crashed_agents(N, i, plan_i.crashes)
 
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
-        for (j, t_j, plan_j_id) in get!(table, v, [])
+        v == plan_i.path[t_i-1] && continue
+        for (j, t_j, plan_j_id) in event_table[v]
+            j == i && continue
+            # skip crashed agents
+            j in crashed_agents && continue
+            # retrieve plan
             plan_j = solution[j][plan_j_id]
+            # skip if i is assumed to be crashed
+            any(c -> c.who == i, plan_j.crashes) && continue
+            # inconsistency between crashes
             inconsistent(ins, plan_i.crashes, plan_j.crashes) && continue
+            # add event
             add_event!(
                 U,
                 ins;
@@ -256,6 +262,13 @@ function register_new_unresolved_events!(
                 v = v,
             )
         end
+    end
+
+    # update event_table
+    for t_i = plan_i.offset+1:length(plan_i.path)
+        v = plan_i.path[t_i]
+        v == plan_i.path[t_i-1] && continue
+        push!(event_table[v], (who = i, when = t_i, plan_id = plan_i.id))
     end
 end
 
@@ -373,6 +386,7 @@ function find_backup_plan(
     use_aggressive_h_func::Bool = false,
     avoid_duplicates_backup::Bool = false,
     avoid_duplicates_backup_weight::Real = 0.01,
+    used_cnt_table::Vector{Int} = fill(0, length(ins.G)),
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -390,14 +404,19 @@ function find_backup_plan(
     crashes = vcat(original_plan_i.crashes, event.crash)
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
-    crashed_locations = map(c -> c.loc, crashes)
+
+    # identify crashed locations
+    # the following is a bit faster than:
+    # crashed_locations = map(c -> c.loc, crashes)
+    crashed_locations = fill(0, length(crashes))
+    foreach(k -> crashed_locations[k] = crashes[k].loc, 1:length(crashes))
 
     @assert(
         isnothing(ins.max_num_crashes) || length(crashes) <= ins.max_num_crashes,
         "no more crash"
     )
 
-    used_cnt_table = fill(0, length(ins.G))
+    fill!(used_cnt_table, 0)
     if avoid_duplicates_backup
         for j in correct_agents, plan_j in solution[j]
             if length(plan_j.path) < offset
@@ -420,6 +439,13 @@ function find_backup_plan(
         end
     end
 
+    # identify plans possibly causing collisions
+    collision_plans = Vector{Plan}()
+    for j in correct_agents, plan_j in solution[j]
+        any(c -> c.who == i, plan_j.crashes) && continue
+        length(plan_j.path) <= offset && continue
+        push!(collision_plans, plan_j)
+    end
 
     invalid =
         (S_from, S_to) -> begin
@@ -433,10 +459,10 @@ function find_backup_plan(
             # avoid others' goals
             v_i_to in correct_agents_goals && return true
             # avoid collisions
-            for j in correct_agents, plan_j in solution[j]
-                any(c -> c.who == i, plan_j.crashes) && continue
-                v_j_from = get_in_range(plan_j.path, t - 1)
-                v_j_to = get_in_range(plan_j.path, t)
+            for plan_j in collision_plans
+                t > length(plan_j.path) && continue
+                v_j_from = plan_j.path[t-1]
+                v_j_to = plan_j.path[t]
                 (v_i_to == v_j_to || (v_i_to == v_j_from && v_i_from == v_j_to)) &&
                     return true
             end
@@ -473,11 +499,11 @@ function add_event!(
     if t_i < t_j && can_add_crash(ins, plan_j.crashes)
         c_i = SyncCrash(who = i, loc = v, when = t_i)
         e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        enqueue!(U, Event(crash = c_i, effect = e_j))
+        enqueue!(U, Event(crash = c_i, effect = e_j, f = U.f(c_i, e_j, U)))
     elseif t_j < t_i && can_add_crash(ins, plan_i.crashes)
         c_j = SyncCrash(who = j, loc = v, when = t_j)
         e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        enqueue!(U, Event(crash = c_j, effect = e_i))
+        enqueue!(U, Event(crash = c_j, effect = e_i, f = U.f(c_j, e_i, U)))
     end
     nothing
 end

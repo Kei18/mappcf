@@ -6,6 +6,9 @@ function get_distance_table(
     table = fill(typemax(Int), length(G))
     OPEN = Queue{Int}()
 
+    arr_prohibited = fill(false, length(G))
+    foreach(v -> arr_prohibited[v] = true, prohibited_locs)
+
     # setup initial vertex
     table[goal] = 0
     enqueue!(OPEN, goal)
@@ -17,7 +20,8 @@ function get_distance_table(
 
         # expand
         for u_id in get_neighbors(G, loc)
-            u_id in prohibited_locs && continue
+            # u_id in prohibited_locs && continue
+            arr_prohibited[u_id] && continue
             g = d + 1
             # update distance
             if g < table[u_id]
