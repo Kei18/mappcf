@@ -29,7 +29,7 @@ function planner1(
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
-    runtime_profile[:elapsed_setup_event_queue] = @elapsed begin
+    runtime_profile[:elapsed_initial_setup] = @elapsed begin
         # setup event queue
         U = EventQueue(f = event_queue_func)
         # cache
@@ -37,6 +37,7 @@ function planner1(
             map(_ -> Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}(), ins.G)
         # identify intersections
         setup_initial_unresolved_events!(ins, solution, U, event_table)
+        used_cnt_table::Vector{Int} = fill(0, length(ins.G))
     end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
     verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
@@ -78,6 +79,7 @@ function planner1(
                 event;
                 deadline = deadline,
                 h_func_global = h_func,
+                used_cnt_table = used_cnt_table,
                 kwargs...,
             )
         end
@@ -391,6 +393,7 @@ function find_backup_plan(
     use_aggressive_h_func::Bool = false,
     avoid_duplicates_backup::Bool = false,
     avoid_duplicates_backup_weight::Real = 0.01,
+    used_cnt_table::Vector{Int} = fill(0, length(ins.G)),
     kwargs...,
 )::Union{Nothing,Plan}
 
@@ -408,14 +411,19 @@ function find_backup_plan(
     crashes = vcat(original_plan_i.crashes, event.crash)
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
-    crashed_locations = map(c -> c.loc, crashes)
+
+    # identify crashed locations
+    # the following is a bit faster than:
+    # crashed_locations = map(c -> c.loc, crashes)
+    crashed_locations = fill(0, length(crashes))
+    foreach(k -> crashed_locations[k] = crashes[k].loc, 1:length(crashes))
 
     @assert(
         isnothing(ins.max_num_crashes) || length(crashes) <= ins.max_num_crashes,
         "no more crash"
     )
 
-    used_cnt_table = fill(0, length(ins.G))
+    fill!(used_cnt_table, 0)
     if avoid_duplicates_backup
         for j in correct_agents, plan_j in solution[j]
             if length(plan_j.path) < offset
