@@ -115,7 +115,7 @@ function gen_event_queue_func(
 )::Function
 
     # default, "WHEN"
-    f = (c::Crash, e::Effect, U::EventQueue) -> e.when
+    f = (c::Crash, e::Effect, U::EventQueue) -> -e.when
 
     # the following option may cause bugs (I found a corner case)
     # if search_style == "BFS"
@@ -210,6 +210,7 @@ function setup_initial_unresolved_events!(
     N = length(solution)
     # storing who uses where and when
     for i = 1:N, (t_i, v) in enumerate(solution[i][1].path)
+        t_i > 1 && v == solution[i][1].path[t_i-1] && continue
         for (j, t_j) in event_table[v]
             j == i && continue
             add_event!(
@@ -238,17 +239,9 @@ function register_new_unresolved_events!(
     i = plan_i.who
     correct_agents, crashed_agents = get_correct_crashed_agents(N, i, plan_i.crashes)
 
-    # storing who uses where and when
-    # event_table = map(_ -> Vector{@NamedTuple{who::Int, when::Int, plan_id::Int}}(), ins.G)
-    # for j in correct_agents, plan_j in solution[j]
-    #     any(c -> c.who == i, plan_j.crashes) && continue  # excluding assumed crashed agents
-    #     for (t_j, v) in enumerate(plan_j.path)
-    #         push!(event_table[v], (who = j, when = t_j, plan_id = plan_j.id))
-    #     end
-    # end
-
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
+        v == plan_i.path[t_i-1] && continue
         for (j, t_j, plan_j_id) in event_table[v]
             j == i && continue
             # skip crashed agents
@@ -275,6 +268,7 @@ function register_new_unresolved_events!(
     # update event_table
     for t_i = plan_i.offset+1:length(plan_i.path)
         v = plan_i.path[t_i]
+        v == plan_i.path[t_i-1] && continue
         push!(event_table[v], (who = i, when = t_i, plan_id = plan_i.id))
     end
 end
@@ -446,6 +440,13 @@ function find_backup_plan(
         end
     end
 
+    # identify plans possibly causing collisions
+    collision_plans = Vector{Plan}()
+    for j in correct_agents, plan_j in solution[j]
+        any(c -> c.who == i, plan_j.crashes) && continue
+        length(plan_j.path) <= offset && continue
+        push!(collision_plans, plan_j)
+    end
 
     invalid =
         (S_from, S_to) -> begin
@@ -459,10 +460,10 @@ function find_backup_plan(
             # avoid others' goals
             v_i_to in correct_agents_goals && return true
             # avoid collisions
-            for j in correct_agents, plan_j in solution[j]
-                any(c -> c.who == i, plan_j.crashes) && continue
-                v_j_from = get_in_range(plan_j.path, t - 1)
-                v_j_to = get_in_range(plan_j.path, t)
+            for plan_j in collision_plans
+                t > length(plan_j.path) && continue
+                v_j_from = plan_j.path[t-1]
+                v_j_to = plan_j.path[t]
                 (v_i_to == v_j_to || (v_i_to == v_j_from && v_i_from == v_j_to)) &&
                     return true
             end
