@@ -69,15 +69,27 @@ function load_benchmark(;
     name::String,
     map_name::String,
     num::Union{Nothing,Int} = nothing,
+    max_num_crashes::Union{Nothing,Int} = nothing,
 )::Vector{Instance}
     G = MAPPFD.load_mapf_bench(map_name)
-    instances = Vector{Instance}
+    I = Vector{Instance}()
     if isdir(name)
-        instances = JLD2.load(joinpath(name, "benchmark.jld2"))["instances"]
+        I = JLD2.load(joinpath(name, "benchmark.jld2"))["instances"]
     elseif isfile(name)
-        instances = JLD2.load(name)["instances"]
+        I = JLD2.load(name)["instances"]
     end
-    instances = instances[1:(isnothing(num) ? end : num)]
-    foreach(ins -> foreach(v -> push!(ins.G, v), G), instances)
-    return instances
+    I = I[1:(isnothing(num) ? end : num)]
+    if !isnothing(max_num_crashes)
+        for k = 1:length(I)
+            ins = I[k]
+            I[k] = typeof(ins)(
+                G = ins.G,
+                starts = ins.starts,
+                goals = ins.goals,
+                max_num_crashes = max_num_crashes,
+            )
+        end
+    end
+    foreach(ins -> foreach(v -> push!(ins.G, v), G), I)
+    return I
 end

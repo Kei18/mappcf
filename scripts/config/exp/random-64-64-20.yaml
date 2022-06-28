@@ -2,3 +2,4 @@ instances:
   _target_: load_benchmark
   name: ../data/benchmark/random-64-64-20/01
   map_name: ./assets/map/random-64-64-20.map
+  num: 10000
