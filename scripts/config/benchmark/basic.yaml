@@ -1,4 +1,4 @@
-# root_dir: ../../data/benchmark
+root_dir: ../data/benchmark/
 
 benchmark:
   _target_: generate_multiple_random_sync_instance_grid

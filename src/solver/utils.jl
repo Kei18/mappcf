@@ -23,8 +23,20 @@ function get_sync_event(;
     end
 end
 
-function can_add_crash(ins::Instance, crashes::Vector{Crash})::Bool
-    return isnothing(ins.max_num_crashes) || length(crashes) + 1 <= ins.max_num_crashes
+function can_add_crash(
+    ins::Instance,
+    crashes1::Vector{Crash},
+    crashes2::Vector{Crash},
+)::Bool
+    isnothing(ins.max_num_crashes) && return true
+    l = length(crashes1) + length(crashes2)
+    for c1 in crashes1, c2 in crashes2
+        if c1.who == c2.who
+            c1.loc != c2.loc && return false
+            l -= 1
+        end
+    end
+    return l + 1 <= ins.max_num_crashes
 end
 
 function astar_operator_decomposition(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}

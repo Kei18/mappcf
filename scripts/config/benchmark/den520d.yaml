@@ -1,0 +1,12 @@
+root_dir: ../data/benchmark/
+seed: 0
+
+benchmark:
+  _target_: generate_multiple_random_sync_instance_grid_wellformed
+  num: 10000
+  VERBOSE: 1
+  N_min: 2
+  N_max: 50
+  filename: ./assets/map/den520d.map
+  max_num_crashes_min: 1
+  max_num_crashes_max: 10

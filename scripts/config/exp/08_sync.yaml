@@ -5,40 +5,31 @@ VERBOSE: 1
 
 instances:
   _target_: generate_multiple_random_sync_instance_grid_wellformed
-  num: 1
+  num: 1000
   VERBOSE: 1
-  N_min: 10
-  N_max: 30
-  width: 30
-  height: 30
-  occupancy_rate: 0
+  N_min: 2
+  N_max: 50
+  filename: ./assets/map/den520d.map
   max_num_crashes_min: 1
-  max_num_crashes_max: 5
+  max_num_crashes_max: 10
 
 solvers_common: &solvers_common
   VERBOSE: 0
-  timestep_limit: 100
+  timestep_limit: 1000
   avoid_duplicates_backup: true
   multi_agent_path_planner:
-    avoid_duplicates_weight: 1
     _target_: MAPPFD.Solver.RPP_refine
+    avoid_duplicates_weight: 1
 
 time_limit_sec: 10
 
 solvers:
-  # - _target_: MAPPFD.planner1
-  #   <<: *solvers_common
-  #   search_style: "BFS"
-  # - _target_: MAPPFD.planner1
-  #   <<: *solvers_common
-  #   search_style: "DFS"
   - _target_: MAPPFD.planner1
     <<: *solvers_common
-    search_style: "M_WHEN"
 
 verification:
   _target_: approx_verify_with_local_FD
-  max_activation: 100
+  max_activation: 1000
   num_repetition: 10
   failure_prob: 0.01
 
@@ -56,4 +47,5 @@ summary:
   - _target_: plot_N_vs_success_rate
   - _target_: plot_runtime_profile
   - _target_: plot_success_rate_matrix
-  - _target_: open_result_dir
+    VERBOSE: 1
+  # - _target_: open_result_dir

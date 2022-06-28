@@ -2,6 +2,7 @@ using MAPPFD
 import YAML
 import Dates
 import JLD
+import Random: seed!
 include("./utils.jl")
 
 function create_benchmark(config_file::String, args...)::Union{Nothing,String}
@@ -10,6 +11,7 @@ function create_benchmark(config_file::String, args...)::Union{Nothing,String}
         @error("no benchmark specification")
         return nothing
     end
+    seed!(get(config, "seed", 0))
     instances = parse_fn(config["benchmark"])()
     if haskey(config, "viz")
         viz = parse_fn(config["viz"])
