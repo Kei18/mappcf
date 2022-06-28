@@ -39,12 +39,21 @@ chmod a+x .githooks/pre-commit
 ```sh
 julia --project=. --threads=auto
 > include("./scripts/benchmark_gen.jl")
-> create_all_benchmarks("benchmark.num=10000")
+> @time create_all_benchmarks("benchmark.num=10000")
 ```
+
+c.f., xxxx sec with 16 threads
 
 #### evaluation
 ```sh
-julia --project=. --threads=auto -e "include(\"./scripts/eval.jl\"); main(\"./scripts/config/exp/basic.yaml\")"
+julia --project=. --threads=auto
+include("./scripts/eval.jl")
+config_files = [
+    "scripts/config/exp/commons.yaml",
+    "scripts/config/exp/solvers.yaml",
+    "scripts/config/exp/random-32-32-10.yaml",
+]
+@time main(config_files, "instances.num=1000")
 ```
 
 ## Reproduction

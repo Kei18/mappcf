@@ -1,0 +1,5 @@
+instances:
+  _target_: load_benchmark
+  name: ../data/benchmark/random-32-32-10/01
+  map_name: ./assets/map/random-32-32-10.map
+  num: 10000
