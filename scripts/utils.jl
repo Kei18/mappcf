@@ -73,10 +73,10 @@ end
 
 function load_benchmark(;
     name::String,
-    graph_name::String,
+    map_name::String,
     num::Union{Nothing,Int} = nothing,
 )::Vector{Instance}
-    G = MAPPFD.load_mapf_bench(graph_name)
+    G = MAPPFD.load_mapf_bench(map_name)
     instances = Vector{Instance}
     if isdir(name)
         instances = JLD2.load(joinpath(name, "benchmark.jld2"))["instances"]
@@ -86,10 +86,6 @@ function load_benchmark(;
     instances = instances[1:(isnothing(num) ? end : num)]
     foreach(ins -> foreach(v -> push!(ins.G, v), G), instances)
     return instances
-end
-
-function load_benchmark(name::String)::Union{Nothing,Vector{Instance}}
-    return load_benchmark(; name = name)
 end
 
 function plot_cactus(
