@@ -1,6 +1,6 @@
 import YAML
 import Dates
-import JLD
+import JLD2
 using DataFrames
 using Query
 using Plots
@@ -73,16 +73,19 @@ end
 
 function load_benchmark(;
     name::String,
+    graph_name::String,
     num::Union{Nothing,Int} = nothing,
-)::Union{Nothing,Vector{Instance}}
+)::Vector{Instance}
+    G = MAPPFD.load_mapf_bench(graph_name)
+    instances = Vector{Instance}
     if isdir(name)
-        return JLD.load(joinpath(name, "benchmark.jld"))["instances"][1:(isnothing(num) ?
-                                                                         end : num)]
+        instances = JLD2.load(joinpath(name, "benchmark.jld2"))["instances"]
     elseif isfile(name)
-        return JLD.load(name)["instances"][1:(isnothing(num) ? end : num)]
+        instances = JLD2.load(name)["instances"]
     end
-    @warn("neither file nor directory: $name")
-    nothing
+    instances = instances[1:(isnothing(num) ? end : num)]
+    foreach(ins -> foreach(v -> push!(ins.G, v), G), instances)
+    return instances
 end
 
 function load_benchmark(name::String)::Union{Nothing,Vector{Instance}}

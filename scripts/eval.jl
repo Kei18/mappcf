@@ -2,7 +2,7 @@ import CSV
 import Random: seed!
 import Printf: @printf
 using MAPPFD
-import JLD
+import JLD2
 import Base.Threads
 include("./utils.jl")
 
@@ -51,8 +51,8 @@ function main(config_file::String, args...)
                 verification = verify(ins, solution)
                 if !verification
                     @error("found infeasible solution: ins-$k, solver-$l")
-                    JLD.save(
-                        joinpath(root_dir, "infeasible_ins-$(k)_solver-$(l).jld"),
+                    JLD2.save(
+                        joinpath(root_dir, "infeasible_ins-$(k)_solver-$(l).jld2"),
                         "ins",
                         ins,
                     )

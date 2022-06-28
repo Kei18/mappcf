@@ -26,6 +26,42 @@ Base.show(io::IO, ins::SeqInstance) = print(
 )
 
 
+# for saving
+struct SyncInstanceSerialization
+    starts::Config
+    goals::Config
+    max_num_crashes::Union{Nothing,Int}
+end
+
+struct SeqInstanceSerialization
+    starts::Config
+    goals::Config
+    max_num_crashes::Union{Nothing,Int}
+end
+
+JLD2.writeas(::Type{SyncInstance}) = SyncInstanceSerialization
+Base.convert(::Type{SyncInstanceSerialization}, a::SyncInstance) =
+    SyncInstanceSerialization(a.starts, a.goals, a.max_num_crashes)
+Base.convert(::Type{SyncInstance}, a::SyncInstanceSerialization) = SyncInstance(
+    G = Graph(),
+    starts = a.starts,
+    goals = a.goals,
+    max_num_crashes = a.max_num_crashes,
+)
+
+JLD2.writeas(::Type{SeqInstance}) = SeqInstanceSerialization
+Base.convert(::Type{SeqInstanceSerialization}, a::SeqInstance) =
+    SeqInstanceSerialization(a.starts, a.goals, a.max_num_crashes)
+Base.convert(::Type{SeqInstance}, a::SeqInstanceSerialization) = SeqInstance(
+    G = Graph(),
+    starts = a.starts,
+    goals = a.goals,
+    max_num_crashes = a.max_num_crashes,
+)
+
+
+# instance generator
+
 function generate_random_instance_grid(;
     N_min::Int = 5,
     N_max::Int = 10,

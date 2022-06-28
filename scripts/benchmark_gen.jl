@@ -1,7 +1,7 @@
 using MAPPFD
 import YAML
 import Dates
-import JLD
+import JLD2
 import Random: seed!
 include("./utils.jl")
 
@@ -20,6 +20,6 @@ function create_benchmark(config_file::String, args...)::Union{Nothing,String}
             safe_savefig!("$(root_dir)/instance_$(k).pdf")
         end
     end
-    JLD.save(joinpath(root_dir, "benchmark.jld"), "instances", instances)
+    JLD2.save(joinpath(root_dir, "benchmark.jld2"), "instances", instances)
     return root_dir
 end

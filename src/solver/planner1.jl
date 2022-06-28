@@ -365,11 +365,15 @@ function add_event!(
     @assert(i != j, "add_event!")
     c_i = SeqCrash(who = i, loc = v)
     c_j = SeqCrash(who = j, loc = v)
-    if t_i > 1 && !haskey(plan_i.backup, c_j) && can_add_crash(ins, plan_i.crashes)
+    if t_i > 1 &&
+       !haskey(plan_i.backup, c_j) &&
+       can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_i = SeqEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
         enqueue!(U, Event(crash = c_j, effect = e_i))
     end
-    if t_j > 1 && !haskey(plan_j.backup, c_i) && can_add_crash(ins, plan_j.crashes)
+    if t_j > 1 &&
+       !haskey(plan_j.backup, c_i) &&
+       can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_j = SeqEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
         enqueue!(U, Event(crash = c_i, effect = e_j))
     end
