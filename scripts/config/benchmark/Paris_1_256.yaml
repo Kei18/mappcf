@@ -1,4 +1,4 @@
-root_dir: ../data/benchmark/
+root: ../data/benchmark/Paris_1_256
 seed: 0
 
 benchmark:

@@ -1,4 +1,4 @@
-root_dir: ../data/benchmark/
+root: ../data/benchmark/random-32-32-20
 seed: 0
 
 benchmark:

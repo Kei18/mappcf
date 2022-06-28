@@ -1,4 +1,4 @@
-root_dir: ../data/benchmark/
+root: ../data/benchmark/empty-8-8
 seed: 0
 
 benchmark:

@@ -1,4 +1,4 @@
-root_dir: ../data/benchmark/
+root: ../data/benchmark/den520d
 seed: 0
 
 benchmark:
