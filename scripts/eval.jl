@@ -1,10 +1,13 @@
 import CSV
+import YAML
 import Random: seed!
 import Printf: @printf
 using MAPPFD
 import JLD2
 import Base.Threads
 include("./utils.jl")
+include("./summary.jl")
+
 
 function main(config_file::String, args...)
     timer = Deadline(time_limit_sec = 0)
@@ -117,4 +120,11 @@ function main(config_file::String, args...)
 
     verbose(VERBOSE, 1, timer, "finish evaluation")
     return :success
+end
+
+function main(config_files::Vector{String}, args...; tmp_filename = "./tmp.yaml")
+    YAML.write_file(tmp_filename, merge(map(YAML.load_file, config_files)...))
+    res = main(tmp_filename, args...)
+    rm(tmp_filename)
+    return res
 end
