@@ -61,6 +61,7 @@ import QuickHeaps: FastBinaryHeap
 using Plots
 import ColorSchemes
 import Base.Threads
+import JLD2
 
 include("utils.jl")
 include("graph.jl")

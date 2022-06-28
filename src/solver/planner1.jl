@@ -12,6 +12,13 @@ function planner1(
     runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
     kwargs...,
 )::Union{Failure,Solution}
+
+    # setup runtime profile
+    runtime_profile[:elapsed_find_backup_plan] = 0
+    runtime_profile[:elapsed_identify_new_event] = 0
+    runtime_profile[:elapsed_initial_paths] = 0
+    runtime_profile[:elapsed_initial_setup] = 0
+
     # get initial solution
     runtime_profile[:elapsed_initial_paths] = @elapsed begin
         solution = get_initial_solution(
@@ -25,7 +32,7 @@ function planner1(
     end
     if isnothing(solution)
         verbose(VERBOSE, 1, deadline, "failed to find initial solution")
-        return FAILURE_NO_INITIAL_SOLUTION
+        return is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_INITIAL_SOLUTION
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
@@ -41,9 +48,6 @@ function planner1(
     end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
     verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
-
-    runtime_profile[:elapsed_find_backup_plan] = 0
-    runtime_profile[:elapsed_identify_new_event] = 0
 
     # main loop
     loop_cnt = 0
@@ -361,11 +365,15 @@ function add_event!(
     @assert(i != j, "add_event!")
     c_i = SeqCrash(who = i, loc = v)
     c_j = SeqCrash(who = j, loc = v)
-    if t_i > 1 && !haskey(plan_i.backup, c_j) && can_add_crash(ins, plan_i.crashes)
+    if t_i > 1 &&
+       !haskey(plan_i.backup, c_j) &&
+       can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_i = SeqEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
         enqueue!(U, Event(crash = c_j, effect = e_i))
     end
-    if t_j > 1 && !haskey(plan_j.backup, c_i) && can_add_crash(ins, plan_j.crashes)
+    if t_j > 1 &&
+       !haskey(plan_j.backup, c_i) &&
+       can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_j = SeqEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
         enqueue!(U, Event(crash = c_i, effect = e_j))
     end
@@ -496,11 +504,11 @@ function add_event!(
     j = plan_j.who
     @assert(i != j, "add_event!")
     @assert(t_i != t_j, "collision occurs")
-    if t_i < t_j && can_add_crash(ins, plan_j.crashes)
+    if t_i < t_j && can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         c_i = SyncCrash(who = i, loc = v, when = t_i)
         e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
         enqueue!(U, Event(crash = c_i, effect = e_j, f = U.f(c_i, e_j, U)))
-    elseif t_j < t_i && can_add_crash(ins, plan_i.crashes)
+    elseif t_j < t_i && can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         c_j = SyncCrash(who = j, loc = v, when = t_j)
         e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
         enqueue!(U, Event(crash = c_j, effect = e_i, f = U.f(c_j, e_i, U)))

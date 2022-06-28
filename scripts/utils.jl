@@ -1,10 +1,11 @@
 import YAML
 import Dates
-import JLD
+import JLD2
 using DataFrames
 using Query
 using Plots
 using StatsPlots
+import CSV
 import Statistics: mean, median
 
 function parse_fn(config::Dict)::Function
@@ -70,18 +71,21 @@ function prepare_exp!(
     return (root_dir, config)
 end
 
-function load_benchmark(; name::String)::Union{Nothing,Vector{Instance}}
+function load_benchmark(;
+    name::String,
+    map_name::String,
+    num::Union{Nothing,Int} = nothing,
+)::Vector{Instance}
+    G = MAPPFD.load_mapf_bench(map_name)
+    instances = Vector{Instance}
     if isdir(name)
-        return JLD.load(joinpath(name, "benchmark.jld"))["instances"]
+        instances = JLD2.load(joinpath(name, "benchmark.jld2"))["instances"]
     elseif isfile(name)
-        return JLD.load(name)["instances"]
+        instances = JLD2.load(name)["instances"]
     end
-    @warn("neither file nor directory: $name")
-    nothing
-end
-
-function load_benchmark(name::String)::Union{Nothing,Vector{Instance}}
-    return load_benchmark(; name = name)
+    instances = instances[1:(isnothing(num) ? end : num)]
+    foreach(ins -> foreach(v -> push!(ins.G, v), G), instances)
+    return instances
 end
 
 function plot_cactus(
@@ -411,15 +415,17 @@ end
 function plot_success_rate_matrix(
     csv_filename::String;
     result_dir::String = joinpath(split(csv_filename, "/")[1:end-1]...),
+    VERBOSE::Int = 0,
 )
     df_origin = CSV.File(csv_filename) |> DataFrame
     for df in groupby(df_origin, :solver_index)
+        solver_name = "$(df[1,:solver_index]):$(df[1,:solver])"
+        VERBOSE > 0 && println("solver:$(solver_name)")
         N_min = df |> @map(_.N) |> minimum
         N_max = df |> @map(_.N) |> maximum
         arr_N = vcat(collect(N_min:5:N_max), N_max)
         arr_max_num_crashes = df |> @map(_.max_num_crashes) |> @unique() |> collect |> sort
-
-        D = fill(0.0, (length(arr_N) - 1, length(arr_max_num_crashes)))
+        D = fill(0.0, (length(arr_max_num_crashes), length(arr_N) - 1))
         for k = 1:length(arr_N)-1
             N1, N2 = arr_N[k], arr_N[k+1]
             for (l, max_num_crashes) in enumerate(arr_max_num_crashes)
@@ -437,15 +443,17 @@ function plot_success_rate_matrix(
                     ) |>
                     collect |>
                     length
-                D[k, l] = cnt_success / cnt_total
+                D[l, k] = cnt_success / cnt_total
+                VERBOSE > 0 && println(
+                    "N=$(N1)-$(N2)\tcrash=$(max_num_crashes)" *
+                    "\tcnt_total=$cnt_total" *
+                    "\tcnt_success=$(cnt_success)" *
+                    "\tsuccess=$(D[l,k])",
+                )
             end
         end
 
-        solver_name = "$(df[1,:solver_index]):$(df[1,:solver])"
-
         heatmap(
-            1:size(D, 1),
-            1:size(D, 2),
             D,
             xticks = (
                 1:length(arr_N)-1,

@@ -37,9 +37,9 @@ chmod a+x .githooks/pre-commit
 
 #### generating benchmarks
 ```sh
-julia --project=.
+julia --project=. --threads=auto
 > include("./scripts/benchmark_gen.jl")
-> create_benchmark("./scripts/config/benchamrk/basic.yaml")
+> create_all_benchmarks("benchmark.num=10000")
 ```
 
 #### evaluation
