@@ -10,7 +10,9 @@ Solution = Vector{Vector{Plan}}
 
 Base.show(io::IO, plan::Plan) = begin
     s = "Plan("
-    s *= "id = $(plan.id), who = $(plan.who), path = $(plan.path), backup = ["
+    s *= "id = $(plan.id), who = $(plan.who), path = $(plan.path), "
+    s *= "offset = $(plan.offset), "
+    s *= "backup = ["
     for (i, (key, val)) in enumerate(plan.backup)
         s *= "$key => $val"
         if i != length(plan.backup)

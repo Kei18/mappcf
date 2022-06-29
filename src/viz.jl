@@ -31,6 +31,8 @@ function plot_graph!(
     show_vertex_id::Bool = false,
     markersize::Real = 12,
     fontsize::Real = 6,
+    edgecolor = :black,
+    markerstrokecolor = :black,
     kwargs...,
 )
     # plot edges
@@ -40,7 +42,7 @@ function plot_graph!(
             plot!(
                 [v.pos[1], u.pos[1]],
                 [v.pos[2], u.pos[2]],
-                color = :black,
+                color = edgecolor,
                 label = nothing,
             )
         end
@@ -51,7 +53,14 @@ function plot_graph!(
     positions = hcat(map(v -> v.pos, _G)...)
     X = positions[1, :]
     Y = positions[2, :]
-    scatter!(X, Y, label = nothing, markersize = markersize, color = :white)
+    scatter!(
+        X,
+        Y,
+        label = nothing,
+        markersize = markersize,
+        color = :white,
+        markerstrokecolor = markerstrokecolor,
+    )
     show_vertex_id && annotate!(X, Y, map(v -> (v.id, fontsize, :black, :bottom), _G))
 
     return plot!()

@@ -7,8 +7,8 @@ function planner1(
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
-    search_style::String = "WHEN",
-    event_queue_func = gen_event_queue_func(ins, search_style, h_func),
+    tie_break::Union{Nothing,String} = nothing,
+    event_queue_func = gen_event_queue_func(ins, tie_break, h_func),
     runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
     kwargs...,
 )::Union{Failure,Solution}
@@ -47,7 +47,7 @@ function planner1(
         used_cnt_table::Vector{Int} = fill(0, length(ins.G))
     end
     verbose(VERBOSE, 1, deadline, "initial unresolved events: $(length(U))")
-    verbose(VERBOSE, 1, deadline, "start resolving events with $(search_style)-style")
+    verbose(VERBOSE, 1, deadline, "start resolving events with tie-break: $(tie_break)")
 
     # main loop
     loop_cnt = 0
@@ -114,34 +114,23 @@ end
 
 function gen_event_queue_func(
     ins::Instance,
-    search_style::String,
+    tie_break::Union{Nothing,String},
     h_func::Function,
 )::Function
+    f = (c::Crash, e::Effect, U::EventQueue) -> e.when
 
-    # default, "WHEN"
-    f = (c::Crash, e::Effect, U::EventQueue) -> -e.when
-
-    if search_style == "BFS"
-        f = (c::Crash, e::Effect, U::EventQueue) -> length(U) + 1
-    elseif search_style == "DFS"  # stuck
-        f = (c::Crash, e::Effect, U::EventQueue) -> -(length(U) + 1)
-    elseif search_style == "COST_TO_GO"
-        f = (c::Crash, e::Effect, U::EventQueue) -> h_func(e.who)(e.loc)
-    elseif search_style == "M_COST_TO_GO"
-        f = (c::Crash, e::Effect, U::EventQueue) -> -h_func(e.who)(e.loc)
-    elseif search_style == "M_WHEN"
-        f = (c::Crash, e::Effect, U::EventQueue) -> -e.when
-    elseif search_style == "WHO"
-        f = (c::Crash, e::Effect, U::EventQueue) -> e.who + e.when / 1000
-    elseif search_style == "WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (c::Crash, e::Effect, U::EventQueue) -> c.when
-    elseif search_style == "M_WHEN_CRASH" && isa(ins, SyncInstance)
-        f = (c::Crash, e::Effect, U::EventQueue) -> -c.when
-    elseif search_style == "CRITICAL_SECTIONS"
-        f = (c::Crash, e::Effect, U::EventQueue) -> get!(U.agents_counts, e.who, 0)
-    elseif search_style == "M_CRITICAL_SECTIONS"
-        f = (c::Crash, e::Effect, U::EventQueue) -> -get!(U.agents_counts, e.who, 0)
+    if tie_break == "BFS"
+        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + (length(U) + 1) / 1e3
+    elseif tie_break == "DFS"  # stuck
+        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + (1 - (length(U) + 1) / 1e3)
+    elseif tie_break == "COST_TO_GO"
+        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + h_func(e.who)(e.loc) / 1e3
+    elseif tie_break == "M_COST_TO_GO"
+        f =
+            (c::Crash, e::Effect, U::EventQueue) ->
+                e.when + (1 - h_func(e.who)(e.loc) / 1e3)
     end
+
     return f
 end
 
@@ -412,12 +401,7 @@ function find_backup_plan(
     crashes = vcat(original_plan_i.crashes, event.crash)
     correct_agents, = get_correct_crashed_agents(N, i, crashes)
     correct_agents_goals = map(j -> ins.goals[j], correct_agents)
-
-    # identify crashed locations
-    # the following is a bit faster than:
-    # crashed_locations = map(c -> c.loc, crashes)
-    crashed_locations = fill(0, length(crashes))
-    foreach(k -> crashed_locations[k] = crashes[k].loc, 1:length(crashes))
+    crashed_locations = map(c -> c.loc, crashes)
 
     @assert(
         isnothing(ins.max_num_crashes) || length(crashes) <= ins.max_num_crashes,

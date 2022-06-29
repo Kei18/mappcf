@@ -39,7 +39,7 @@ chmod a+x .githooks/pre-commit
 ```sh
 julia --project=. --threads=auto
 > include("./scripts/benchmark_gen.jl")
-> @time create_all_benchmarks("benchmark.num=10000")
+> @time create_benchmark("./scripts/config/benchmark/empty-8-8.yaml")
 ```
 
 c.f., xxxx sec with 16 threads
