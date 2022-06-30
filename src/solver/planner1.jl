@@ -314,7 +314,8 @@ function find_backup_plan(
     for j in correct_agents, plan_j in solution[j]
         any(c -> c.who == i, plan_j.crashes) && continue
         is_expired(deadline) && return nothing
-        OTIMAPP.register!(table, j, plan_j.path)
+        # OTIMAPP.register!(table, j, plan_j.path)
+        OTIMAPP.fast_register!(table, j, plan_j.path)
     end
 
     invalid =
