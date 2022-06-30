@@ -9,6 +9,8 @@ verification:
   num_repetition: 100
   failure_prob: 0.01
 
+time_limit_sec: 30
+
 summary:
   - _target_: describe_simply
     VERBOSE: 1

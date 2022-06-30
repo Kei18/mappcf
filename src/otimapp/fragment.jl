@@ -18,8 +18,14 @@ function register!(table::FragmentTable, fragment::Fragment)::Nothing
     nothing
 end
 
-function register!(table::FragmentTable, i::Int, path::Path;)::Nothing
+function register!(
+    table::FragmentTable,
+    i::Int,
+    path::Path;
+    deadline::Union{Nothing,Deadline} = nothing,
+)::Nothing
     for k = 1:length(path)-1
+        is_expired(deadline) && break
         u = path[k]    # from
         v = path[k+1]  # to
 

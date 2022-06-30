@@ -312,7 +312,9 @@ function find_backup_plan(
 
     table = FragmentTable()
     for j in correct_agents, plan_j in solution[j]
-        register!(table, j, plan_j.path)
+        any(c -> c.who == i, plan_j.crashes) && continue
+        is_expired(deadline) && return nothing
+        OTIMAPP.register!(table, j, plan_j.path)
     end
 
     invalid =

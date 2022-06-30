@@ -70,6 +70,7 @@ function load_benchmark(;
     map_name::String,
     num::Union{Nothing,Int} = nothing,
     max_num_crashes::Union{Nothing,Int} = nothing,
+    instance_type::String = "SYNC",
 )::Vector{Instance}
     G = MAPPFD.load_mapf_bench(map_name)
     I = Vector{Instance}()
@@ -89,6 +90,21 @@ function load_benchmark(;
                 max_num_crashes = max_num_crashes,
             )
         end
+    end
+    if instance_type == "SEQ"
+        I_seq = Vector{SeqInstance}()
+        for (k, ins) in enumerate(I)
+            push!(
+                I_seq,
+                SeqInstance(
+                    G = ins.G,
+                    starts = ins.starts,
+                    goals = ins.goals,
+                    max_num_crashes = ins.max_num_crashes,
+                ),
+            )
+        end
+        I = I_seq
     end
     foreach(ins -> foreach(v -> push!(ins.G, v), G), I)
     return I
