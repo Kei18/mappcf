@@ -219,3 +219,13 @@ end
 function potential_deadlock_exists(v_from::Int, v_to::Int, table::FragmentTable)::Bool
     return haskey(table.to, v_from) && any(f -> first(f.path) == v_to, table.to[v_from])
 end
+
+
+function remove_fragments!(table::FragmentTable, i::Int)::Nothing
+    for v in keys(table.from)
+        filter!(t -> !(i in t.agents), table.from[v])
+    end
+    for v in keys(table.to)
+        filter!(t -> !(i in t.agents), table.to[v])
+    end
+end

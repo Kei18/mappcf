@@ -1,9 +1,9 @@
 @kwdef struct BasicNode <: SearchNode
     v::Int  # where
     parent::Union{Nothing,BasicNode} = nothing
-    g::Int = 0
-    h::Int = 0
-    f::Int = g + h
+    g::Real = 0
+    h::Real = 0
+    f::Real = g + h
 end
 Base.lt(o::FastForwardOrdering, a::BasicNode, b::BasicNode) = a.f < b.f
 Base.string(S::BasicNode) = string(S.v)
