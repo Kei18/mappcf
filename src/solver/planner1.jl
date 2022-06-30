@@ -32,7 +32,8 @@ function planner1(
     end
     if isnothing(solution)
         verbose(VERBOSE, 1, deadline, "failed to find initial solution")
-        return is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_INITIAL_SOLUTION
+        return is_expired(deadline) ? FAILURE_TIMEOUT_INITIAL_SOLUTION :
+               FAILURE_NO_INITIAL_SOLUTION
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 

@@ -383,7 +383,7 @@ function plot_success_rate_matrix(
         )
 
         safe_savefig!(
-            joinpath(result_dir, "success_rate_matrix-$(df[1, :solver_index]).pdf"),
+            joinpath(result_dir, "success_rate_matrix-$(df[1, :solver_index]).png"),
         )
     end
 end

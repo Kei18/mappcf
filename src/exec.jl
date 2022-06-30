@@ -275,9 +275,11 @@ function execute_with_local_FD(
             end
 
             # update configuration
-            progress_indexes[i] += 1
-            v_next = solution[i][plan_id_list[i]].path[progress_indexes[i]]
-            config[i] = v_next
+            v_next = solution[i][plan_id_list[i]].path[progress_indexes[i]+1]
+            if !(v_next in config)
+                progress_indexes[i] += 1
+                config[i] = v_next
+            end
         end
 
     update_crashes! =

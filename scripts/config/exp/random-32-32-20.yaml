@@ -3,3 +3,4 @@ instances:
   name: ../data/benchmark/random-32-32-20/01
   map_name: ./assets/map/random-32-32-20.map
   num: 10000
+  instance_type: SYNC

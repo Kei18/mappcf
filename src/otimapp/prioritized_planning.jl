@@ -12,7 +12,9 @@ function seq_prioritized_planning(
     specified_planning_order::Vector{Int} = collect(1:length(starts)),
     shuffle_planning_order::Bool = false,
     avoid_starts::Bool = false,
+    seed::Int = 0,
 )::Union{Nothing,Paths}
+    seed!(seed)
 
     N = length(starts)
     K = length(G)
@@ -112,4 +114,32 @@ function SeqRPP_refine(args...; kwargs...)::Union{Nothing,Paths}
         do_refinement = true,
         kwargs...,
     )
+end
+
+function SeqPP_repeat(
+    args...;
+    time_limit_sec::Union{Nothing,Real} = nothing,
+    deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
+                                        generate_deadline(time_limit_sec),
+    VERBOSE::Int = 0,
+    kwargs...,
+)::Union{Nothing,Paths}
+    N = length(args[2])
+    iter_cnt = 0
+    while !is_expired(deadline)
+        iter_cnt += 1
+        paths = seq_prioritized_planning(
+            args...;
+            specified_planning_order = randperm(N),
+            deadline = deadline,
+            VERBOSE = VERBOSE - 1,
+            kwargs...,
+        )
+        !isnothing(paths) && return paths
+    end
+    return nothing
+end
+
+function SeqRPP_repeat_refine(args...; kwargs...)
+    return SeqPP_repeat(args...; avoid_starts = true, do_refinement = true, kwargs...)
 end

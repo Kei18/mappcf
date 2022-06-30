@@ -68,6 +68,7 @@ Base.show(io::IO, e::SeqEffect) =
     FAILURE_TIMEOUT
     FAILURE_NO_INITIAL_SOLUTION
     FAILURE_NO_BACKUP_PATH
+    FAILURE_TIMEOUT_INITIAL_SOLUTION
 end
 
 include("./utils.jl")
