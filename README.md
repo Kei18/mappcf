@@ -45,16 +45,32 @@ julia --project=. --threads=auto
 c.f., xxxx sec with 16 threads
 
 #### evaluation
+
+sync
+
 ```sh
 julia --project=. --threads=auto
 include("./scripts/eval.jl")
 config_files = [
     "scripts/config/exp/commons.yaml",
-    "scripts/config/exp/solvers.yaml",
+    "scripts/config/exp/solvers_sync.yaml",
     "scripts/config/exp/random-32-32-10.yaml",
 ]
 @time main(config_files, "instances.num=1000")
 ```
+
+seq
+```sh
+julia --project=. --threads=auto
+include("./scripts/eval.jl")
+config_files = [
+    "scripts/config/exp/commons.yaml",
+    "scripts/config/exp/solvers_seq.yaml",
+    "scripts/config/exp/random-32-32-10.yaml",
+]
+@time main(config_files, "instances.instance_type=SEQ", "instances.num=1000")
+```
+
 
 ## Reproduction
 

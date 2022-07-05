@@ -32,7 +32,8 @@ function planner1(
     end
     if isnothing(solution)
         verbose(VERBOSE, 1, deadline, "failed to find initial solution")
-        return is_expired(deadline) ? FAILURE_TIMEOUT : FAILURE_NO_INITIAL_SOLUTION
+        return is_expired(deadline) ? FAILURE_TIMEOUT_INITIAL_SOLUTION :
+               FAILURE_NO_INITIAL_SOLUTION
     end
     verbose(VERBOSE, 1, deadline, "initial paths are found")
 
@@ -312,7 +313,10 @@ function find_backup_plan(
 
     table = FragmentTable()
     for j in correct_agents, plan_j in solution[j]
-        register!(table, j, plan_j.path)
+        any(c -> c.who == i, plan_j.crashes) && continue
+        is_expired(deadline) && return nothing
+        # OTIMAPP.register!(table, j, plan_j.path)
+        OTIMAPP.fast_register!(table, j, plan_j.path)
     end
 
     invalid =

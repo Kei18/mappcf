@@ -63,3 +63,11 @@ end
 function RPP_refine(ins::SyncInstance; kwargs...)::Union{Nothing,Paths}
     return MAPF.RPP_refine(ins.G, ins.starts, ins.goals; kwargs...)
 end
+
+function SeqRPP_refine(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP_refine(ins.G, ins.starts, ins.goals; kwargs...)
+end
+
+function SeqRPP_repeat_refine(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
+    return OTIMAPP.SeqRPP_repeat_refine(ins.G, ins.starts, ins.goals; kwargs...)
+end

@@ -3,3 +3,4 @@ instances:
   name: ../data/benchmark/Paris_1_256/01
   map_name: ./assets/map/Paris_1_256.map
   num: 10000
+  instance_type: SYNC

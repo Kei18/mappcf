@@ -2,10 +2,10 @@ solvers_common: &solvers_common
   VERBOSE: 0
   timestep_limit: 1000
   avoid_duplicates_backup: true
-  multi_agent_path_planner:
-    _target_: MAPPFD.Solver.RPP_refine
-    avoid_duplicates_weight: 1
 
 solvers:
   - _target_: MAPPFD.planner1
     <<: *solvers_common
+    multi_agent_path_planner:
+      _target_: MAPPFD.Solver.SeqRPP_repeat_refine
+      avoid_duplicates_weight: 3
