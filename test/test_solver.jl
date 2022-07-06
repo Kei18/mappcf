@@ -62,4 +62,9 @@
         @test solution[2][1].path == [22, 17, 12, 7]
         @test solution[3][1].path == [24, 19, 14, 9]
     end
+
+    @testset "CBS" begin
+        ins = generate_sample_sync_instance4()
+        @test isa(MAPPFD.Solver.CBS(ins; time_limit_sec = 3), Failure)
+    end
 end

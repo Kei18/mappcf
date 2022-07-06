@@ -75,5 +75,6 @@ include("./utils.jl")
 include("./event_queue.jl")
 include("./planner1.jl")
 include("./planner2.jl")
+include("./cbs.jl")
 
 end
