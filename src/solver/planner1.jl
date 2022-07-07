@@ -13,11 +13,7 @@ function planner1(
     kwargs...,
 )::Union{Failure,Solution}
 
-    # setup runtime profile
-    runtime_profile[:elapsed_find_backup_plan] = 0
-    runtime_profile[:elapsed_identify_new_event] = 0
-    runtime_profile[:elapsed_initial_paths] = 0
-    runtime_profile[:elapsed_initial_setup] = 0
+    setup_runtime_profile!(runtime_profile)
 
     # get initial solution
     runtime_profile[:elapsed_initial_paths] = @elapsed begin

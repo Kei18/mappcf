@@ -1,0 +1,3 @@
+solvers:
+  - _target_: MAPPFD.Solver.CBS
+    avoid_duplicates_weight: 10

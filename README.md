@@ -35,44 +35,36 @@ git config core.hooksPath .githooks
 chmod a+x .githooks/pre-commit
 ```
 
-#### generating benchmarks
+c.f., xxxx sec with 16 threads
+
+## Reproduction
+
+### benchmark generation
+
 ```sh
 julia --project=. --threads=auto
 > include("./scripts/benchmark_gen.jl")
 > @time create_benchmark("./scripts/config/benchmark/empty-8-8.yaml")
 ```
 
-c.f., xxxx sec with 16 threads
+- change directory name
 
-#### evaluation
-
-sync
-
+### baseline methods
 ```sh
-julia --project=. --threads=auto
-include("./scripts/eval.jl")
-config_files = [
-    "scripts/config/exp/commons.yaml",
-    "scripts/config/exp/solvers_sync.yaml",
-    "scripts/config/exp/random-32-32-10.yaml",
-]
-@time main(config_files, "instances.num=1000")
+julia --project=. --threads=auto -e "include(\"./scripts/eval_baseline.jl\")"
 ```
 
-seq
+### sync
+
 ```sh
-julia --project=. --threads=auto
-include("./scripts/eval.jl")
-config_files = [
-    "scripts/config/exp/commons.yaml",
-    "scripts/config/exp/solvers_seq.yaml",
-    "scripts/config/exp/random-32-32-10.yaml",
-]
-@time main(config_files, "instances.instance_type=SEQ", "instances.num=1000")
+julia --project=. --threads=auto -e "include(\"./scripts/eval_sync.jl\")"
 ```
 
+### seq
 
-## Reproduction
+```sh
+julia --project=. --threads=auto -e "include(\"./scripts/eval_seq.jl\")"
+```
 
 ## Notes
 

@@ -1,5 +1,4 @@
 solvers_common: &solvers_common
-  VERBOSE: 0
   timestep_limit: 1000
   avoid_duplicates_backup: true
 

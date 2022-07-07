@@ -20,7 +20,11 @@ function CBS(
                                         generate_deadline(time_limit_sec),
     h_func::Function = gen_h_func(ins),
     avoid_duplicates_weight::Real = 10,
+    runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
+    kwargs...,
 )::Union{Failure,Solution}
+
+    setup_runtime_profile!(runtime_profile)
 
     N = length(ins.starts)
     OPEN = FastBinaryHeap{HighLevelNode}()

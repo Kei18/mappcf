@@ -1,23 +1,7 @@
 root: ../data/exp/
-
 seed_offset: 0
 VERBOSE: 1
-
-verification:
-  _target_: approx_verify_with_local_FD
-  max_activation: 1000
-  num_repetition: 100
-  failure_prob: 0.01
-
 time_limit_sec: 30
-
 summary:
   - _target_: describe_simply
     VERBOSE: 1
-  - _target_: plot_cactus
-  - _target_: plot_runtime_vs_max_num_crashes
-  - _target_: plot_success_rate_vs_max_num_crashes
-  - _target_: plot_failure_reasons
-  - _target_: plot_N_vs_success_rate
-  - _target_: plot_runtime_profile
-  - _target_: plot_success_rate_matrix

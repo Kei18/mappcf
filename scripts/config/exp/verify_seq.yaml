@@ -1,0 +1,5 @@
+verification:
+  _target_: approx_verify_with_local_FD
+  max_activation: 10000
+  num_repetition: 100
+  failure_prob: 0.01

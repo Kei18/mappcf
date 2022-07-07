@@ -71,3 +71,10 @@ end
 function SeqRPP_repeat_refine(ins::SeqInstance; kwargs...)::Union{Nothing,Paths}
     return OTIMAPP.SeqRPP_repeat_refine(ins.G, ins.starts, ins.goals; kwargs...)
 end
+
+function setup_runtime_profile!(runtime_profile::Dict{Symbol,Real})
+    runtime_profile[:elapsed_find_backup_plan] = 0
+    runtime_profile[:elapsed_identify_new_event] = 0
+    runtime_profile[:elapsed_initial_paths] = 0
+    runtime_profile[:elapsed_initial_setup] = 0
+end
