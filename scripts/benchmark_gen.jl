@@ -40,7 +40,7 @@ function create_benchmarks_exp1()
     map_filename = joinpath(@__DIR__, "../assets/map/$(MAP_NAME).map")
 
     # fix number of crashes
-    agents = [10, 20, 30, 40]
+    agents = [5, 10, 15, 20, 25, 30]
     loops = collect(enumerate(Iterators.product(agents, 1:NUM_INS)))
     instances = Vector{Instance}(undef, length(loops))
     Threads.@threads for (k, (N,)) in loops
@@ -58,7 +58,7 @@ function create_benchmarks_exp1()
     instances = Vector{Instance}(undef, length(loops))
     Threads.@threads for (k, (c,)) in loops
         instances[k] = generate_random_sync_instance_grid_wellformed(;
-            N = 20,
+            N = 15,
             max_num_crashes = c,
             filename = map_filename,
         )
