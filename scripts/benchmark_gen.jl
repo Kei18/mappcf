@@ -53,15 +53,23 @@ function create_benchmarks_exp1()
     JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
 
     # fix number of agents
-    arr_max_num_crashes = [1, 2, 3, 4, 5]
-    loops = collect(enumerate(Iterators.product(arr_max_num_crashes, 1:NUM_INS)))
-    instances = Vector{Instance}(undef, length(loops))
-    Threads.@threads for (k, (c,)) in loops
-        instances[k] = generate_random_sync_instance_grid_wellformed(;
+    num_crashes = [1, 2, 3, 4, 5]
+    loops = collect(1:NUM_INS)
+    instances = Vector{Instance}(undef, length(loops) * length(num_crashes))
+    Threads.@threads for k in loops
+        ins = generate_random_sync_instance_grid_wellformed(;
             N = 15,
-            max_num_crashes = c,
+            max_num_crashes = 1,
             filename = map_filename,
         )
+        for (l, c) in enumerate(num_crashes)
+            instances[k+NUM_INS*(l-1)] = typeof(ins)(
+                G = ins.G,
+                starts = ins.starts,
+                goals = ins.goals,
+                max_num_crashes = c,
+            )
+        end
     end
     JLD2.save(joinpath(root_dir, "fix_agent.jld2"), "instances", instances)
 end
