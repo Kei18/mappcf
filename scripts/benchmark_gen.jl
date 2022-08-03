@@ -31,3 +31,37 @@ function create_all_benchmarks(args...; dirname = "./scripts/config/benchmark"):
         create_benchmark(file, args...)
     end
 end
+
+function create_benchmarks_exp1()
+    NUM_INS = 25
+    MAP_NAME = "random-32-32-10"
+
+    root_dir = joinpath(@__DIR__, "../../data/benchmark/exp1")
+    map_filename = joinpath(@__DIR__, "../assets/map/$(MAP_NAME).map")
+
+    # fix number of crashes
+    agents = [10, 20, 30, 40]
+    loops = collect(enumerate(Iterators.product(agents, 1:NUM_INS)))
+    instances = Vector{Instance}(undef, length(loops))
+    Threads.@threads for (k, (N,)) in loops
+        instances[k] = generate_random_sync_instance_grid_wellformed(;
+            N = N,
+            max_num_crashes = 1,
+            filename = map_filename,
+        )
+    end
+    JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
+
+    # fix number of agents
+    arr_max_num_crashes = [1, 2, 3, 4, 5]
+    loops = collect(enumerate(Iterators.product(arr_max_num_crashes, 1:NUM_INS)))
+    instances = Vector{Instance}(undef, length(loops))
+    Threads.@threads for (k, (c,)) in loops
+        instances[k] = generate_random_sync_instance_grid_wellformed(;
+            N = 20,
+            max_num_crashes = c,
+            filename = map_filename,
+        )
+    end
+    JLD2.save(joinpath(root_dir, "fix_agent.jld2"), "instances", instances)
+end
