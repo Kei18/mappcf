@@ -100,7 +100,7 @@ function create_benchmarks_exp2()
     instances = Vector{Instance}(undef, length(loops) * length(num_crashes))
     Threads.@threads for k in loops
         ins = generate_random_sync_instance_grid_wellformed(;
-            N = 20,
+            N = 15,
             max_num_crashes = 1,
             filename = map_filename,
         )
@@ -114,4 +114,28 @@ function create_benchmarks_exp2()
         end
     end
     JLD2.save(joinpath(root_dir, "fix_agent.jld2"), "instances", instances)
+end
+
+
+
+function create_benchmarks_exp3()
+    seed!(1)
+    NUM_INS = 25
+    MAP_NAME = "Paris_1_256"
+
+    root_dir = joinpath(@__DIR__, "../../data/benchmark/exp3")
+    map_filename = joinpath(@__DIR__, "../assets/map/$(MAP_NAME).map")
+
+    # fix number of crashes
+    agents = [10, 20, 30, 40, 50, 60]
+    loops = collect(enumerate(Iterators.product(agents, 1:NUM_INS)))
+    instances = Vector{Instance}(undef, length(loops))
+    Threads.@threads for (k, (N,)) in loops
+        instances[k] = generate_random_sync_instance_grid_wellformed(;
+            N = N,
+            max_num_crashes = 1,
+            filename = map_filename,
+        )
+    end
+    JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
 end
