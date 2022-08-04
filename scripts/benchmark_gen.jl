@@ -127,15 +127,19 @@ function create_benchmarks_exp3()
     map_filename = joinpath(@__DIR__, "../assets/map/$(MAP_NAME).map")
 
     # fix number of crashes
-    agents = [10, 20, 30, 40, 50, 60]
+    agents = [20, 40, 60, 80, 100]
     loops = collect(enumerate(Iterators.product(agents, 1:NUM_INS)))
     instances = Vector{Instance}(undef, length(loops))
+    cnt_fin = Threads.Atomic{Int}(0)
+    num_total_tasks = length(instances)
     Threads.@threads for (k, (N,)) in loops
         instances[k] = generate_random_sync_instance_grid_wellformed(;
             N = N,
             max_num_crashes = 1,
             filename = map_filename,
         )
+        Threads.atomic_add!(cnt_fin, 1)
+        println("$(cnt_fin[])/$(num_total_tasks) tasks have been finished";)
     end
     JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
 end
