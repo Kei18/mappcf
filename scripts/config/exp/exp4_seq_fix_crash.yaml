@@ -15,8 +15,8 @@ verification:
 
 instances:
   _target_: load_benchmark
-  name: ../data/benchmark/exp3/fix_crash.jld2
-  map_name: ./assets/map/Paris_1_256.map
+  name: ../data/benchmark/exp4/fix_crash.jld2
+  map_name: ./assets/map/warehouse-20-40-10-2-2.map
   instance_type: SEQ
 
 solvers:
