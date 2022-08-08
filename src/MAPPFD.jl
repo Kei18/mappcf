@@ -28,18 +28,17 @@ export
     generate_multiple_random_seq_instance_grid,
     generate_multiple_random_sync_instance_grid_wellformed,
     generate_multiple_random_seq_instance_grid_wellformed,
-    # solution
+    # crash
     Crash,
     SyncCrash,
     SeqCrash,
+    # solution
     Plan,
     Solution,
     get_scores,
     # execution
     execute_with_local_FD,
-    execute_with_global_FD,
     approx_verify_with_local_FD,
-    approx_verify_with_global_FD,
     History,
     # viz
     plot_graph,
@@ -56,7 +55,6 @@ export
 import Random: seed!, randperm
 import Printf: @printf, @sprintf
 import Base: @kwdef, get
-import DataStructures: PriorityQueue, enqueue!, dequeue!
 import QuickHeaps: FastBinaryHeap
 using Plots
 import ColorSchemes
@@ -78,7 +76,5 @@ include("solver/solver.jl")
 using .Solver
 include("exec.jl")
 include("viz.jl")
-
-include("examples.jl")
 
 end # module

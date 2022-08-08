@@ -1,3 +1,7 @@
+"""
+crash definition
+"""
+
 abstract type Crash end
 
 # synchronous model
@@ -27,6 +31,7 @@ function get_correct_crashed_agents(
     return (correct_agents = correct_agents, crashed_agents = crashed_agents)
 end
 
+# return pair of correct and crashed agents excluding i
 function get_correct_crashed_agents(
     N::Int,
     i::Int,

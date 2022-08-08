@@ -1,7 +1,10 @@
+"""
+MAPF (multi-agent pathfinding) module
+"""
+
 module MAPF
 
 import Base: @kwdef
-import DataStructures: PriorityQueue, enqueue!, dequeue!
 import Random: randperm, seed!
 import ..MAPPFD:
     Graph,
@@ -24,6 +27,5 @@ import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")
 include("./prioritized_planning.jl")
-include("./astar_operator_decomposition.jl")
 
 end

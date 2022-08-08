@@ -1,3 +1,8 @@
+"""
+utility functions
+"""
+
+# check validity of MAPF solutions
 function is_valid_mapf_solution(
     G::Graph,
     starts::Config,

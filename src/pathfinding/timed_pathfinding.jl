@@ -1,10 +1,14 @@
+"""
+space-time A*
+"""
+
 @kwdef struct TimedNode <: SearchNode
     v::Int64  # where
     t::Int64  # when
     parent::Union{Nothing,TimedNode} = nothing  # parent
     g::Real = 0  # g-value
     h::Real = 0  # h-value
-    f::Real = g + h * 1.00001 # f-value
+    f::Real = g + h * 1.00001 # f-value with tie-break
 end
 Base.lt(o::FastForwardOrdering, a::TimedNode, b::TimedNode) = a.f < b.f
 

@@ -1,3 +1,7 @@
+"""
+prioritized planning
+"""
+
 function seq_prioritized_planning(
     G::Graph,
     starts::Config,
@@ -41,6 +45,7 @@ function seq_prioritized_planning(
         )
         shuffle_planning_order && iter > 1 && (planning_order = randperm(N))
 
+        # main
         for (k, i) in enumerate(planning_order)
             # update deadlock table & used_cnt_table
             cnt_duplicates = typemax(Int)
@@ -62,6 +67,7 @@ function seq_prioritized_planning(
 
             h_func_i = (v) -> h_func(i)(v) + used_cnt_table[v] * avoid_duplicates_weight
 
+            # A* search
             path = basic_pathfinding(
                 G = G,
                 start = starts[i],
@@ -103,10 +109,12 @@ function SeqPP(args...; kwargs...)::Union{Nothing,Paths}
     return seq_prioritized_planning(args...; kwargs...)
 end
 
+# revisited prioritized planning
 function SeqRPP(args...; kwargs...)::Union{Nothing,Paths}
     return seq_prioritized_planning(args...; avoid_starts = true, kwargs...)
 end
 
+# revisited prioritized planning with refinement
 function SeqRPP_refine(args...; kwargs...)::Union{Nothing,Paths}
     return seq_prioritized_planning(
         args...;
@@ -116,6 +124,7 @@ function SeqRPP_refine(args...; kwargs...)::Union{Nothing,Paths}
     )
 end
 
+# PP with random planning order
 function SeqPP_repeat(
     args...;
     time_limit_sec::Union{Nothing,Real} = nothing,
@@ -140,6 +149,7 @@ function SeqPP_repeat(
     return nothing
 end
 
+# RPP with random planning order
 function SeqRPP_repeat_refine(args...; kwargs...)
     return SeqPP_repeat(args...; avoid_starts = true, do_refinement = true, kwargs...)
 end

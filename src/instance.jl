@@ -1,3 +1,7 @@
+"""
+instance definition
+"""
+
 abstract type Instance end
 
 # synchronous model
@@ -5,7 +9,7 @@ abstract type Instance end
     G::Graph
     starts::Config
     goals::Config
-    max_num_crashes::Union{Nothing,Int} = length(starts) - 1
+    max_num_crashes::Union{Nothing,Int} = length(starts) - 1   # k
 end
 
 # sequential model
@@ -13,7 +17,7 @@ end
     G::Graph
     starts::Config
     goals::Config
-    max_num_crashes::Union{Nothing,Int} = length(starts) - 1
+    max_num_crashes::Union{Nothing,Int} = length(starts) - 1   # k
 end
 
 Base.show(io::IO, ins::SyncInstance) = print(

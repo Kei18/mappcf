@@ -1,3 +1,7 @@
+"""
+A* search
+"""
+
 @kwdef struct BasicNode <: SearchNode
     v::Int  # where
     parent::Union{Nothing,BasicNode} = nothing

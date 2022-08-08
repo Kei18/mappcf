@@ -15,7 +15,7 @@ instances:
 time_limit_sec: 2.0
 
 solvers:
-  - _target_: MAPPFD.planner1
+  - _target_: MAPPFD.DCRF
     timestep_limit: 10
     use_aggressive_h_func: true
 

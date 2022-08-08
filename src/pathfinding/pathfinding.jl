@@ -1,11 +1,11 @@
+"""
+single-agent pathfinding module
+"""
+
 module Pathfinding
 
 export get_distance_table,
-    get_distance_tables,
-    timed_pathfinding,
-    basic_pathfinding,
-    gen_h_func,
-    gen_h_func_wellformed
+    get_distance_tables, timed_pathfinding, basic_pathfinding, gen_h_func
 
 import Base: @kwdef
 import ..MAPPFD:
@@ -20,7 +20,7 @@ import ..MAPPFD:
     Instance,
     SyncInstance,
     SeqInstance
-import DataStructures: Queue, PriorityQueue, enqueue!, dequeue!
+import DataStructures: Queue, enqueue!, dequeue!
 import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")

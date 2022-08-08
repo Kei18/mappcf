@@ -1,6 +1,5 @@
 @testset verbose = true "multi_agent_pathfinding" begin
-    import MAPPFD.MAPF:
-        prioritized_planning, astar_operator_decomposition, is_valid_mapf_solution
+    import MAPPFD.MAPF: prioritized_planning, is_valid_mapf_solution
 
     I = generate_sample_sync_instance1()
     ins = (I.G, I.starts, I.goals)
@@ -36,10 +35,5 @@
         solution = prioritized_planning(ins...)
         @test is_valid_mapf_solution(ins..., solution; VERBOSE = 1)
         @test solution == [[1, 2, 3], [4, 1, 5]]
-    end
-
-    @testset "astar_operator_decomposition" begin
-        solution = astar_operator_decomposition(ins...)
-        @test is_valid_mapf_solution(ins..., solution; VERBOSE = 1)
     end
 end

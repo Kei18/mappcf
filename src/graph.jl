@@ -1,3 +1,7 @@
+"""
+graph definition
+"""
+
 @kwdef mutable struct Vertex
     id::Int  # unique id
     pos::Vector{Real} = rand(2)  # assuming 2d
@@ -16,10 +20,11 @@ function get_neighbors(G::Graph, loc::Int)::Vector{Int}
     return G[loc].neigh
 end
 
+# generate grid graph
 function generate_grid(
     width::Int,
     height::Int;
-    obstacle_locs::Vector{Int} = Vector{Int}(),
+    obstacle_locs::Vector{Int} = Vector{Int}(),  # list of obstacle id
 )::Graph
     G = Graph()
     # set vertices and edgers
@@ -86,6 +91,7 @@ function generate_random_graph(num_vertices::Int = 30, prob::Float64 = 0.2)::Gra
     return G
 end
 
+# whether two configurations are connected
 function check_valid_transition(
     G::Graph,
     C_from::Config,
@@ -120,6 +126,7 @@ function check_valid_transition(
     nothing
 end
 
+# solution metrics
 function get_path_length(path::Path)::Int
     cost = 0
     v_pre = first(path)
@@ -131,6 +138,7 @@ function get_path_length(path::Path)::Int
     return cost
 end
 
+# solution metrics
 function get_traveling_time(path::Path)::Int
     i = length(path) - 1
     while i >= 1 && path[i] == last(path)
@@ -139,6 +147,7 @@ function get_traveling_time(path::Path)::Int
     return i
 end
 
+# load mapf benchmark map
 function load_mapf_bench(filename::String)::Graph
     @assert(isfile(filename), "$filename does not exist")
     G, height, width = nothing, 0, 0

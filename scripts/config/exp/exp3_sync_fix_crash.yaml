@@ -20,7 +20,7 @@ instances:
   instance_type: SYNC
 
 solvers:
-  - _target_: MAPPFD.planner1
+  - _target_: MAPPFD.DCRF
     timestep_limit: 1000
     avoid_duplicates_backup: true
     multi_agent_path_planner:

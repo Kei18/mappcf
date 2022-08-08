@@ -1,5 +1,16 @@
+"""
+prioritized planning
+
+ref:
+- Silver, D. (2005). Cooperative Pathfinding. AIIDE.
+- Erdmann, M., & Lozano-Perez, T. (1987). On multiple moving objects. Algorithmica.
+- Čáp, M., Novák, P., Kleiner, A., & Selecký, M. (2015).
+  Prioritized planning algorithms for trajectory coordination of multiple mobile robots. T-ASE.
+"""
+
 const NONE = 0
 
+# goal checker
 function gen_check_goal_pp(paths::Paths, i::Int, goal::Int)::Function
     # compute last timestep when the goal is used by other agents
     last_timestep_goal_used = 0
@@ -19,6 +30,7 @@ function gen_check_goal_pp(paths::Paths, i::Int, goal::Int)::Function
     end
 end
 
+# invalid checker
 function gen_invalid_pp(
     i::Int,
     starts::Config,
@@ -50,6 +62,7 @@ function gen_invalid_pp(
     end
 end
 
+# for collision table
 function update_collision_table!(
     collision_table::Vector{Config},
     paths::Paths,
@@ -74,6 +87,7 @@ function update_collision_table!(
     end
 end
 
+# for tie-break
 function update_used_cnt_table!(used_cnt_table::Vector{Int}, path::Path)
     foreach(v -> used_cnt_table[v] += 1, path)
 end
@@ -83,16 +97,16 @@ function prioritized_planning(
     starts::Config,
     goals::Config;
     h_func::Function = gen_h_func(G, goals),
-    timestep_limit::Union{Nothing,Real} = nothing,
+    timestep_limit::Union{Nothing,Real} = nothing,  # upper bound of timestep
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    do_refinement::Bool = false,
-    avoid_starts::Bool = false,
-    avoid_goals::Bool = false,
-    avoid_duplicates_weight::Real = 0.01,
-    specified_planning_order::Vector{Int} = collect(1:length(starts)),
-    shuffle_planning_order::Bool = false,
+    do_refinement::Bool = false,  # refinement flag
+    avoid_starts::Bool = false,   # avoiding use of others' starts
+    avoid_goals::Bool = false,    # avoiding use of others' goals
+    avoid_duplicates_weight::Real = 0.01,   # tie-break
+    specified_planning_order::Vector{Int} = collect(1:length(starts)),   # planning order
+    shuffle_planning_order::Bool = false,  # whether to shuffle planning order
     VERBOSE::Int = 0,
     seed::Int = 0,
     kwargs...,
@@ -103,8 +117,13 @@ function prioritized_planning(
     K = length(G)
     planning_order = copy(specified_planning_order)
 
+    # solution
     paths = map(i -> Path(), 1:N)
+
+    # collision management
     collision_table = Vector{Config}()
+
+    # tie-breaker
     used_cnt_table = fill(0, K)
     get_duplicated_score() = sum(map(k -> k <= 1 ? 0 : k - 1, used_cnt_table))
 
@@ -121,6 +140,7 @@ function prioritized_planning(
         )
         shuffle_planning_order && iter > 1 && (planning_order = randperm(N))
 
+        # main
         for (k, i) in enumerate(planning_order)
             # update collision_table & used_cnt_table
             cnt_duplicates = typemax(Int)
@@ -147,6 +167,8 @@ function prioritized_planning(
             invalid =
                 gen_invalid_pp(i, starts, goals, collision_table, avoid_starts, avoid_goals)
             h_func_i = (v) -> h_func(i)(v) + used_cnt_table[v] * avoid_duplicates_weight
+
+            # space-time A*
             path = timed_pathfinding(
                 G = G,
                 start = starts[i],
@@ -215,10 +237,12 @@ function PP_repeat(
     return nothing
 end
 
+# revisited prioritized planning
 function RPP(args...; kwargs...)::Union{Nothing,Paths}
     return prioritized_planning(args...; avoid_starts = true, avoid_goals = true, kwargs...)
 end
 
+# revisited prioritized planning with refinement
 function RPP_refine(args...; kwargs...)::Union{Nothing,Paths}
     return prioritized_planning(
         args...;

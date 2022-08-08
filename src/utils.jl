@@ -1,3 +1,8 @@
+"""
+utility functions
+"""
+
+# time management
 @kwdef struct Deadline
     time_limit_sec::Real
     start::UInt64 = Base.time_ns()
@@ -29,6 +34,7 @@ function find_first_element(fn::Function, A::Vector{T})::Union{Nothing,T} where 
     return isnothing(index) ? nothing : A[index]
 end
 
+# print information
 function verbose(
     VERBOSE::Int,
     level::Int,
@@ -48,18 +54,18 @@ end
 
 abstract type SearchNode end
 
-# with updated heap
+# general search function, see pathfinding
 function search(;
-    initial_node::T where {T<:SearchNode},
-    invalid::Function,             # (T) -> Bool
-    check_goal::Function,          # (T, T) -> Bool
-    get_node_neighbors::Function,  # (T) -> Vector{T}
-    get_node_id::Function,         # (T) -> Any
-    backtrack::Function,           # (T) -> Any
+    initial_node::T where {T<:SearchNode},  # initial search node
+    invalid::Function,             # (T, T) -> Bool, transition checker
+    check_goal::Function,          # (T) -> Bool, goal checker
+    get_node_neighbors::Function,  # (T) -> Vector{T}, successor generator
+    get_node_id::Function,         # (T) -> Any, node id generator
+    backtrack::Function,           # (T) -> Any, backtracking
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
-    NameDataType::DataType = Any,
+    NameDataType::DataType = Any,  # type of id
     VERBOSE::Int = 0,
     kwargs...,
 )
