@@ -1,3 +1,7 @@
+"""
+utilities of visualization
+"""
+
 const COLORS = collect(ColorSchemes.seaborn_bright)
 
 function get_colors(N::Int)::Vector{ColorTypes.RGB{Float64}}

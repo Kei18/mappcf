@@ -1,3 +1,11 @@
+"""
+finding disjoint paths by conflict-based search
+
+ref:
+- Sharon, G., Stern, R., Felner, A., & Sturtevant, N. R. (2015).
+  Conflict-based search for optimal multi-agent pathfinding. AIJ.
+"""
+
 @kwdef struct Constraint
     agent::Int64
     v::Int
@@ -28,6 +36,8 @@ function CBS(
 
     N = length(ins.starts)
     OPEN = FastBinaryHeap{HighLevelNode}()
+
+    # setup initial node
     S_init = get_initial_search_node(
         ins;
         deadline = deadline,
@@ -40,6 +50,7 @@ function CBS(
     )
     push!(OPEN, S_init)
 
+    # main loop
     loop_cnt = 0
     while !isempty(OPEN)
         is_expired(deadline) && return FAILURE_TIMEOUT_INITIAL_SOLUTION
@@ -92,6 +103,7 @@ function get_new_node(
     i = new_constraint.agent
     N = length(S.paths)
 
+    # generate h-value function
     occupied = fill(false, length(ins.G))
     foreach(v -> occupied[v] = true, ins.starts)
     foreach(v -> occupied[v] = true, ins.goals)
@@ -102,6 +114,7 @@ function get_new_node(
     end
     h_func_i = (v) -> h_func(i)(v) + used_cnt[v] * avoid_duplicates_weight
 
+    # obtain constraints
     constraints = vcat(S.constraints, new_constraint)
     constraints_i = filter(c -> c.agent == i, constraints)
 
@@ -112,6 +125,7 @@ function get_new_node(
             return false
         end
 
+    # single-agent pathfinding
     path = basic_pathfinding(
         G = ins.G,
         start = ins.starts[i],
@@ -122,10 +136,10 @@ function get_new_node(
     )
     isnothing(path) && return nothing
 
+    # create high-level node
     paths = copy(S.paths)
     paths[i] = path
     foreach(v -> used_cnt[v] += 1, path)
-
     return HighLevelNode(
         paths = paths,
         constraints = constraints,
@@ -141,13 +155,15 @@ function get_initial_search_node(
 )::Union{HighLevelNode,Nothing}
 
     N = length(ins.starts)
-
-    # step 1, initial paths
     paths = Paths()
+
+    # for h-value function
     occupied = fill(false, length(ins.G))
     foreach(v -> occupied[v] = true, ins.starts)
     foreach(v -> occupied[v] = true, ins.goals)
     used_cnt = fill(0, length(ins.G))
+
+    # finding path for each agent
     for i = 1:N
         h_func_i = (v) -> h_func(i)(v) + used_cnt[v] * avoid_duplicates_weight
         path = basic_pathfinding(
@@ -170,6 +186,7 @@ function get_initial_search_node(
     )
 end
 
+# find duplicated vertices
 function get_constraints(S::HighLevelNode)::Vector{Constraint}
     N = length(S.paths)
     constraints = Vector{Constraint}()

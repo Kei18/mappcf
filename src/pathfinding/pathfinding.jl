@@ -1,3 +1,7 @@
+"""
+single-agent pathfinding module
+"""
+
 module Pathfinding
 
 export get_distance_table,

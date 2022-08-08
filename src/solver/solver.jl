@@ -1,3 +1,7 @@
+"""
+MAPPCF solvers
+"""
+
 module Solver
 
 export Effect, DCRF, Failure
@@ -25,7 +29,6 @@ import ..MAPPFD:
     is_expired,
     elapsed_sec,
     gen_h_func,
-    gen_h_func_wellformed,
     is_no_more_crash,
     verbose,
     MAPF,
@@ -38,8 +41,9 @@ abstract type Effect end
 @kwdef struct Event
     crash::Crash
     effect::Effect
-    f::Real = 0
 end
+Base.lt(o::FastForwardOrdering, a::Event, b::Event) = a.effect.when < b.effect.when
+EventQueue = FastBinaryHeap{Event}
 
 @kwdef struct SyncEffect <: Effect
     plan_id::Int
@@ -62,6 +66,7 @@ Base.show(io::IO, e::SyncEffect) = print(
 Base.show(io::IO, e::SeqEffect) =
     print(io, "SeqEffect(who=$(e.who), loc=$(e.loc), when=$(e.when), plan_id=$(e.plan_id))")
 
+# planning failure reasons
 @enum Failure begin
     FAILURE_OTHERS
     FAILURE_TIMEOUT
@@ -71,7 +76,6 @@ Base.show(io::IO, e::SeqEffect) =
 end
 
 include("./utils.jl")
-include("./event_queue.jl")
 include("./dcrf.jl")
 include("./cbs.jl")
 

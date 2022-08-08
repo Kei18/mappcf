@@ -1,3 +1,7 @@
+"""
+MAPF (multi-agent pathfinding) module
+"""
+
 module MAPF
 
 import Base: @kwdef
@@ -23,6 +27,5 @@ import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")
 include("./prioritized_planning.jl")
-include("./astar_operator_decomposition.jl")
 
 end

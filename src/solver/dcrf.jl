@@ -1,14 +1,17 @@
+"""
+DCRF
+"""
+
 function DCRF(
     ins::Instance,
     ;
-    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP : SeqRPP,
+    multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP : SeqRPP,  # initial paths
     VERBOSE::Int = 0,
     time_limit_sec::Union{Nothing,Real} = nothing,
     deadline::Union{Nothing,Deadline} = isnothing(time_limit_sec) ? nothing :
                                         generate_deadline(time_limit_sec),
     h_func = gen_h_func(ins),
     tie_break::Union{Nothing,String} = nothing,
-    event_queue_func = gen_event_queue_func(ins, tie_break, h_func),
     runtime_profile::Dict{Symbol,Real} = Dict{Symbol,Real}(),
     kwargs...,
 )::Union{Failure,Solution}
@@ -35,7 +38,7 @@ function DCRF(
 
     runtime_profile[:elapsed_initial_setup] = @elapsed begin
         # setup event queue
-        U = EventQueue(f = event_queue_func)
+        U = EventQueue()
         # cache
         event_table =
             map(_ -> Vector{@NamedTuple {who::Int, when::Int, plan_id::Int}}(), ins.G)
@@ -67,7 +70,7 @@ function DCRF(
             return FAILURE_TIMEOUT
         end
 
-        event = dequeue!(U)
+        event = pop!(U)
         verbose(VERBOSE, 3, deadline, "resolving event $(event)")
         # avoid duplication & no more crashes
         !is_backup_required(ins, solution, event) && continue
@@ -109,28 +112,6 @@ function DCRF(
     return solution
 end
 
-function gen_event_queue_func(
-    ins::Instance,
-    tie_break::Union{Nothing,String},
-    h_func::Function,
-)::Function
-    f = (c::Crash, e::Effect, U::EventQueue) -> e.when
-
-    if tie_break == "BFS"
-        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + (length(U) + 1) / 1e3
-    elseif tie_break == "DFS"  # stuck
-        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + (1 - (length(U) + 1) / 1e3)
-    elseif tie_break == "COST_TO_GO"
-        f = (c::Crash, e::Effect, U::EventQueue) -> e.when + h_func(e.who)(e.loc) / 1e3
-    elseif tie_break == "M_COST_TO_GO"
-        f =
-            (c::Crash, e::Effect, U::EventQueue) ->
-                e.when + (1 - h_func(e.who)(e.loc) / 1e3)
-    end
-
-    return f
-end
-
 function is_backup_required(ins::Instance, solution::Solution, event::Event)::Bool
     backup_required_plan = solution[event.effect.who][event.effect.plan_id]
     haskey(backup_required_plan.backup, event.crash) && return false
@@ -139,6 +120,22 @@ function is_backup_required(ins::Instance, solution::Solution, event::Event)::Bo
     # is_no_more_crash(ins, backup_required_plan.crashes) && return false
 
     return true
+end
+
+function can_add_crash(
+    ins::Instance,
+    crashes1::Vector{Crash},
+    crashes2::Vector{Crash},
+)::Bool
+    isnothing(ins.max_num_crashes) && return true
+    l = length(crashes1) + length(crashes2)
+    for c1 in crashes1, c2 in crashes2
+        if c1.who == c2.who
+            c1.loc != c2.loc && return false
+            l -= 1
+        end
+    end
+    return l + 1 <= ins.max_num_crashes
 end
 
 function get_initial_solution(
@@ -169,7 +166,7 @@ function register_new_backup_plan!(solution::Solution, event::Event, new_plan::P
     solution[i][event.effect.plan_id].backup[event.crash] = plan_id
 end
 
-
+# check inconsistency between two crash lists
 function inconsistent(
     ins::Instance,
     crashes_i::Vector{Crash},
@@ -358,13 +355,13 @@ function add_event!(
        !haskey(plan_i.backup, c_j) &&
        can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_i = SeqEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        enqueue!(U, Event(crash = c_j, effect = e_i))
+        push!(U, Event(crash = c_j, effect = e_i))
     end
     if t_j > 1 &&
        !haskey(plan_j.backup, c_i) &&
        can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         e_j = SeqEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        enqueue!(U, Event(crash = c_i, effect = e_j))
+        push!(U, Event(crash = c_i, effect = e_j))
     end
     nothing
 end
@@ -491,11 +488,11 @@ function add_event!(
     if t_i < t_j && can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         c_i = SyncCrash(who = i, loc = v, when = t_i)
         e_j = SyncEffect(who = j, when = t_j, loc = v, plan_id = plan_j.id)
-        enqueue!(U, Event(crash = c_i, effect = e_j, f = U.f(c_i, e_j, U)))
+        push!(U, Event(crash = c_i, effect = e_j))
     elseif t_j < t_i && can_add_crash(ins, plan_i.crashes, plan_j.crashes)
         c_j = SyncCrash(who = j, loc = v, when = t_j)
         e_i = SyncEffect(who = i, when = t_i, loc = v, plan_id = plan_i.id)
-        enqueue!(U, Event(crash = c_j, effect = e_i, f = U.f(c_j, e_i, U)))
+        push!(U, Event(crash = c_j, effect = e_i))
     end
     nothing
 end

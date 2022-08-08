@@ -1,3 +1,7 @@
+"""
+fragment, utilities for SeqPP
+"""
+
 @kwdef struct Fragment
     agents::Vector{Int} = []
     path::Path = []
@@ -18,6 +22,7 @@ function register!(table::FragmentTable, fragment::Fragment)::Nothing
     nothing
 end
 
+# usual register function
 function register!(
     table::FragmentTable,
     i::Int,
@@ -62,6 +67,7 @@ function register!(
     end
 end
 
+# for fast_register
 function get_sorted_agents(i::Int, t::Fragment)::Union{Nothing,Vector{Int}}
     agents = Array{Int}(undef, length(t.agents) + 1)
     invalid = false
@@ -88,6 +94,7 @@ function get_sorted_agents(i::Int, t::Fragment)::Union{Nothing,Vector{Int}}
     return !invalid ? agents : nothing
 end
 
+# for fast_register
 function get_sorted_agents(i::Int, t_t::Fragment, t_f::Fragment)::Union{Nothing,Vector{Int}}
     A = t_t.agents
     B = t_f.agents
@@ -169,6 +176,7 @@ function get_sorted_agents(i::Int, t_t::Fragment, t_f::Fragment)::Union{Nothing,
     return !invalid ? agents : nothing
 end
 
+# fast registration of fragments, sorting agents
 function fast_register!(
     table::FragmentTable,
     i::Int,

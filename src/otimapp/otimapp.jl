@@ -1,3 +1,11 @@
+"""
+OTIMAPP module
+
+ref:
+- Okumura, K., Bonnet, F., Tamura, Y., & Défago, X. (2022).
+  Offline Time-Independent Multi-Agent Path Planning. IJCAI.
+"""
+
 module OTIMAPP
 
 export Fragment, FragmentTable, register!, potential_deadlock_exists

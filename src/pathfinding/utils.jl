@@ -1,3 +1,7 @@
+"""
+utility functions
+"""
+
 function get_distance_table(
     G::Graph,
     goal::Int,
@@ -38,6 +42,7 @@ function get_distance_tables(G::Graph, goals::Config)::Vector{Vector{Int}}
     return map(g -> get_distance_table(G, g), goals)
 end
 
+# generate h-value function
 function gen_h_func(G::Graph, goals::Config)::Function
     dist_tables = get_distance_tables(G, goals)
     return (i) -> begin
@@ -53,26 +58,7 @@ function gen_h_func(ins::SeqInstance)::Function
     return gen_h_func(ins.G, ins.goals)
 end
 
-function gen_h_func_wellformed(G::Graph, starts::Config, goals::Config)::Function
-
-    N = length(starts)
-    dist_tables = map(
-        i -> get_distance_table(
-            G,
-            goals[i],
-            vcat(starts[1:i-1], starts[i+1:end], goals[1:i-1], goals[i+1:end]),
-        ),
-        1:N,
-    )
-    return (i) -> begin
-        (v) -> dist_tables[i][v]
-    end
-end
-
-function gen_h_func_wellformed(ins::SyncInstance)::Function
-    return gen_h_func_wellformed(ins.G, ins.starts, ins.goals)
-end
-
+# check path validity
 function is_valid_path(path::Path, G::Graph, start::Int, goal::Int; VERBOSE::Int = 0)::Bool
     if first(path) != start
         VERBOSE > 0 && @warn("invalid start")

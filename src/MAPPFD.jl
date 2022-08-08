@@ -78,6 +78,4 @@ using .Solver
 include("exec.jl")
 include("viz.jl")
 
-include("examples.jl")
-
 end # module
