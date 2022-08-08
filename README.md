@@ -131,6 +131,10 @@ julia --project=. --threads=auto
 
 </details>
 
+The experimental results were obtained in:
+
+[![v0.1](https://img.shields.io/badge/tag-v0.1-blue)](https://github.com/Kei18/mappcf/releases/tag/v0.1)
+
 ## Notes
 
 - The project name comes from MAPP with Failure Detectors (MAPPFD).
