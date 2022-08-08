@@ -41,6 +41,7 @@ julia --project=. --threads=auto
 ```
 
 The used instances are included in `assets/benchmark.zip`.
+Please unzip them to `../data/benchmark/`.
 
 ### Experiments
 

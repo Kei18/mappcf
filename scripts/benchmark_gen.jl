@@ -1,3 +1,7 @@
+"""
+benchmark generation used in experiment
+"""
+
 using MAPPFD
 import YAML
 import Dates

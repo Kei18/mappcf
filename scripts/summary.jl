@@ -1,9 +1,44 @@
+"""
+utility functions to summarize results
+mostly used in early development
+"""
+
 using DataFrames
 using Query
 using Plots
 using StatsPlots
 import CSV
 import Statistics: mean, median
+
+function describe_simply(
+    csv_filename::String;
+    VERBOSE::Int = 0,
+    result_filename::String = joinpath(
+        split(csv_filename, "/")[1:end-1]...,
+        "stats_simple.txt",
+    ),
+)::Nothing
+
+    df = CSV.File(csv_filename) |> DataFrame
+    open(result_filename, "w") do out
+        for df_sub in groupby(df, :solver_index)
+            label = "$(df_sub[1,:solver_index]): $(df_sub[1,:solver])"
+            y =
+                df_sub |>
+                @filter(_.solved == true && _.verification == true) |>
+                @map(_.comp_time) |>
+                collect
+            s = "$label\tsolved:$(length(y))/$(first(size(df_sub)))"
+            if !isempty(y)
+                s *= "\tcomp_time:$(round(mean(y), digits=3)) (mean,sec)"
+                s *= "\t$(round(median(y), digits=3)) (med,sec)"
+            end
+            VERBOSE > 0 && println(s)
+            println(out, s)
+        end
+    end
+    nothing
+end
 
 function plot_cactus(
     csv_filename::String;
@@ -37,36 +72,6 @@ function plot_cactus(
         )
     end
     safe_savefig!(result_filename)
-    nothing
-end
-
-function describe_simply(
-    csv_filename::String;
-    VERBOSE::Int = 0,
-    result_filename::String = joinpath(
-        split(csv_filename, "/")[1:end-1]...,
-        "stats_simple.txt",
-    ),
-)::Nothing
-
-    df = CSV.File(csv_filename) |> DataFrame
-    open(result_filename, "w") do out
-        for df_sub in groupby(df, :solver_index)
-            label = "$(df_sub[1,:solver_index]): $(df_sub[1,:solver])"
-            y =
-                df_sub |>
-                @filter(_.solved == true && _.verification == true) |>
-                @map(_.comp_time) |>
-                collect
-            s = "$label\tsolved:$(length(y))/$(first(size(df_sub)))"
-            if !isempty(y)
-                s *= "\tcomp_time:$(round(mean(y), digits=3)) (mean,sec)"
-                s *= "\t$(round(median(y), digits=3)) (med,sec)"
-            end
-            VERBOSE > 0 && println(s)
-            println(out, s)
-        end
-    end
     nothing
 end
 
