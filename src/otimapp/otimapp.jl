@@ -4,7 +4,6 @@ export Fragment, FragmentTable, register!, potential_deadlock_exists
 
 import Base: @kwdef
 import Random: randperm, seed!
-import DataStructures: PriorityQueue, enqueue!, dequeue!
 import ..MAPPFD:
     Graph,
     get_neighbors,

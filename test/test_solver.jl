@@ -37,32 +37,6 @@
         @test length(solution[2]) == 1
     end
 
-    @testset "planner2" begin
-        ins = generate_sample_sync_instance2()
-        solution = MAPPFD.planner2(
-            ins;
-            multi_agent_path_planner = MAPPFD.astar_operator_decomposition,
-            time_limit_sec = 3,
-        )
-        @test all(plans -> length(plans) == 1, solution)
-        @test solution[1][1].path == [11, 6, 1, 2, 3, 4, 5, 10, 15]
-        @test solution[2][1].path == [22, 17, 12, 7]
-        @test solution[3][1].path == [24, 19, 14, 9]
-    end
-
-    @testset "planner2 no crash" begin
-        ins = generate_sample_sync_instance2(0)
-        solution = MAPPFD.planner2(
-            ins;
-            multi_agent_path_planner = MAPPFD.astar_operator_decomposition,
-            time_limit_sec = 3,
-        )
-        @test all(plans -> length(plans) == 1, solution)
-        @test solution[1][1].path == [11, 12, 13, 14, 15]
-        @test solution[2][1].path == [22, 17, 12, 7]
-        @test solution[3][1].path == [24, 19, 14, 9]
-    end
-
     @testset "CBS" begin
         ins = generate_sample_sync_instance4()
         @test isa(MAPPFD.Solver.CBS(ins; time_limit_sec = 3), Failure)

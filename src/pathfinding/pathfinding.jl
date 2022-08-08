@@ -20,7 +20,7 @@ import ..MAPPFD:
     Instance,
     SyncInstance,
     SeqInstance
-import DataStructures: Queue, PriorityQueue, enqueue!, dequeue!
+import DataStructures: Queue, enqueue!, dequeue!
 import QuickHeaps: FastForwardOrdering
 
 include("./utils.jl")

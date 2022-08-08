@@ -1,11 +1,10 @@
 module Solver
 
-export Effect, planner1, planner2, Failure
+export Effect, planner1, Failure
 
 import Base: @kwdef, length, isempty
 import Base.Iterators: product
 import Printf: @printf, @sprintf
-import DataStructures: PriorityQueue, enqueue!, dequeue!
 import ..MAPPFD:
     Graph,
     Path,
@@ -74,7 +73,6 @@ end
 include("./utils.jl")
 include("./event_queue.jl")
 include("./planner1.jl")
-include("./planner2.jl")
 include("./cbs.jl")
 
 end
