@@ -20,6 +20,8 @@ The entire code is written in Julia 1.7.
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
+It may require around 5min.
+
 ## Minimum Example
 
 A toy example is available on Jupyter Lab.
