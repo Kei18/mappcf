@@ -6,33 +6,15 @@ import Glob: glob
 import Random: seed!
 include("./utils.jl")
 
-function create_benchmark(config_file::String, args...)::Union{Nothing,String}
-    root_dir, config = prepare_exp!(config_file, "benchmark", args...)
-    if !haskey(config, "benchmark")
-        @error("no benchmark specification")
-        return nothing
-    end
-    seed!(get(config, "seed", 0))
-    instances = parse_fn(config["benchmark"])()
-    if haskey(config, "viz")
-        viz = parse_fn(config["viz"])
-        for (k, ins) in enumerate(instances)
-            viz(ins)
-            safe_savefig!("$(root_dir)/instance_$(k).pdf")
-        end
-    end
-    JLD2.save(joinpath(root_dir, "benchmark.jld2"), "instances", instances)
-    return root_dir
-end
-
-function create_all_benchmarks(args...; dirname = "./scripts/config/benchmark")::Nothing
-    files = glob(joinpath(dirname, "*.yaml"))
-    for file in files
-        create_benchmark(file, args...)
-    end
+function create_benchmarks()
+    create_benchmarks_exp1()
+    create_benchmarks_exp2()
+    create_benchmarks_exp3()
+    create_benchmarks_exp4()
 end
 
 function create_benchmarks_exp1()
+    seed!(1)
     NUM_INS = 25
     MAP_NAME = "random-32-32-10"
 
@@ -75,6 +57,7 @@ function create_benchmarks_exp1()
 end
 
 function create_benchmarks_exp2()
+    seed!(1)
     NUM_INS = 25
     MAP_NAME = "random-64-64-10"
 
@@ -137,8 +120,9 @@ function create_benchmarks_exp3()
             filename = map_filename,
         )
         Threads.atomic_add!(cnt_fin, 1)
-        println("$(cnt_fin[])/$(num_total_tasks) tasks have been finished";)
+        print("\r$(cnt_fin[])/$(num_total_tasks) tasks have been finished")
     end
+    println()
     JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
 end
 
@@ -163,7 +147,7 @@ function create_benchmarks_exp4()
             filename = map_filename,
         )
         Threads.atomic_add!(cnt_fin, 1)
-        println("$(cnt_fin[])/$(num_total_tasks) tasks have been finished";)
+        print("\r$(cnt_fin[])/$(num_total_tasks) tasks have been finished")
     end
     JLD2.save(joinpath(root_dir, "fix_crash.jld2"), "instances", instances)
 end
