@@ -1,0 +1,30 @@
+root: ../data/exp/
+seed_offset: 0
+VERBOSE: 1
+time_limit_sec: 30
+
+summary:
+  - _target_: describe_simply
+    VERBOSE: 1
+
+verification:
+  _target_: approx_verify_with_local_FD
+  max_activation: 1000
+  num_repetition: 100
+  failure_prob: 0.01
+
+instances:
+  _target_: load_benchmark
+  name: ../data/benchmark/exp2/fix_agent.jld2
+  map_name: ./assets/map/random-64-64-10.map
+  instance_type: SYNC
+
+solvers:
+  - _target_: MAPPFD.planner1
+    timestep_limit: 1000
+    avoid_duplicates_backup: true
+    multi_agent_path_planner:
+      _target_: MAPPFD.Solver.RPP_refine
+      avoid_duplicates_weight: 3
+  - _target_: MAPPFD.Solver.CBS
+    avoid_duplicates_weight: 10
