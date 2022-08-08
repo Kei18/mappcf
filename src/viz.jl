@@ -258,7 +258,12 @@ function plot_anim(
                     hcat(map(j -> vec * j + vertex_pre.pos, 1:interpolate_nums)...)
                 X = interpolate_positions[1, :]
                 Y = interpolate_positions[2, :]
-                scatter!(X, Y, marker = (12, 0.2, get_color(i)), label = nothing)
+                scatter!(
+                    X,
+                    Y,
+                    marker = (get(kwargs, :markersize, 12), 0.2, get_color(i)),
+                    label = nothing,
+                )
             end
         end
     end

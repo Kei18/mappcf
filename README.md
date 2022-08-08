@@ -6,6 +6,14 @@ mappcf
 The code repository of the paper "Fault-Tolerant Offline Multi-Agent Path Planning" (MAPPCF).
 The entire code is written in Julia 1.7.
 
+## Demo
+
+![](./assets/example.png)
+![](./assets/example.gif)
+
+- (first) Solution example. Each agent has a backup path as necessary.
+- (second) Execution demo. A red agent is crashed in the middle (turning to a diagonal shape, gray-filled). The left-blue agent changes its executing path.
+
 ## Setup
 
 ```sh
