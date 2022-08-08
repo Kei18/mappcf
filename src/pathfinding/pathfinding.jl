@@ -9,7 +9,6 @@ export get_distance_table,
     timed_pathfinding,
     basic_pathfinding,
     gen_h_func,
-    gen_h_func_wellformed
 
 import Base: @kwdef
 import ..MAPPFD:

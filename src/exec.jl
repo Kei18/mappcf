@@ -292,7 +292,3 @@ end
 function approx_verify_with_local_FD(args...; kwargs...)::Bool
     approx_verify(execute_with_local_FD, args...; kwargs...)
 end
-
-function approx_verify_with_global_FD(args...; kwargs...)::Bool
-    approx_verify(execute_with_global_FD, args...; kwargs...)
-end

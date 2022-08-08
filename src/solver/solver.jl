@@ -4,7 +4,7 @@ MAPPCF solvers
 
 module Solver
 
-export Effect, DCRF, Failure
+export Effect, DCRF, CBS, Failure
 
 import Base: @kwdef, length, isempty
 import Base.Iterators: product
