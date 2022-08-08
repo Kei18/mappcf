@@ -1,6 +1,6 @@
 module Solver
 
-export Effect, planner1, Failure
+export Effect, DCRF, Failure
 
 import Base: @kwdef, length, isempty
 import Base.Iterators: product
@@ -72,7 +72,7 @@ end
 
 include("./utils.jl")
 include("./event_queue.jl")
-include("./planner1.jl")
+include("./dcrf.jl")
 include("./cbs.jl")
 
 end

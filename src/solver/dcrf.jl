@@ -1,4 +1,4 @@
-function planner1(
+function DCRF(
     ins::Instance,
     ;
     multi_agent_path_planner::Function = isa(ins, SyncInstance) ? RPP : SeqRPP,

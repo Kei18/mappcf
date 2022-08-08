@@ -1,6 +1,0 @@
-instances:
-  _target_: load_benchmark
-  name: ../data/benchmark/empty-8-8/01
-  map_name: ./assets/map/empty-8-8.map
-  num: 5000
-  instance_type: SYNC

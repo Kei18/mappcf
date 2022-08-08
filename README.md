@@ -68,7 +68,7 @@ julia --project=. --threads=auto
 ```
 </details>
 
-<details><summary>Paris_1_256</summary>
+<details><summary>appendix; Paris_1_256</summary>
 
 ```sh
 julia --project=. --threads=auto
@@ -84,7 +84,7 @@ julia --project=. --threads=auto
 
 </details>
 
-<details><summary>warehouse-20-40-10-2-2</summary>
+<details><summary>appendix; warehouse-20-40-10-2-2</summary>
 
 ```sh
 julia --project=. --threads=auto
@@ -96,6 +96,28 @@ julia --project=. --threads=auto
 
 # seq
 > main("scripts/config/exp/exp4_seq_fix_crash.yaml")
+```
+
+</details>
+
+<details><summary>appendix; refinement</summary>
+
+```sh
+julia --project=. --threads=auto
+
+> include("scripts/eval.jl")
+
+# sync, random-32-32-10
+> main("scripts/config/exp/exp5_sync_fix_crash.yaml")
+
+# seq, random-32-32-10
+> main("scripts/config/exp/exp5_seq_fix_crash.yaml")
+
+# sync, random-64-64-10
+> main("scripts/config/exp/exp6_sync_fix_crash.yaml")
+
+# seq, random-64-64-10
+> main("scripts/config/exp/exp6_seq_fix_crash.yaml")
 ```
 
 </details>
