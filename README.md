@@ -1,7 +1,6 @@
 mappcf
 ---
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
-[![CI](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml)
 
 The code repository of the paper "Fault-Tolerant Offline Multi-Agent Path Planning" (MAPPCF).
 The entire code is written in Julia 1.7.
@@ -133,24 +132,10 @@ julia --project=. --threads=auto
 
 </details>
 
-The experimental results were obtained in:
-
-[![v0.1](https://img.shields.io/badge/tag-v0.1-blue)](https://github.com/Kei18/mappcf/releases/tag/v0.1)
-
 ## Notes
 
 - The project name comes from MAPP with Failure Detectors (MAPPFD).
 - The grid maps in `assets/map` are from [MAPF benchmarks](https://movingai.com/benchmarks/mapf.html).
-- `tests/` is not comprehensive. It was used in early developments.
-- Auto formatting (juliaformatter.jl) when committing:
-
-```sh
-git config core.hooksPath .githooks
-chmod a+x .githooks/pre-commit
-```
 
 ## Licence
-This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
-
-## Author
-[Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
+This software will be released under the MIT License.

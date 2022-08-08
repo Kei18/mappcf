@@ -1,6 +1,5 @@
 name = "MAPPFD"
 uuid = "637336f9-a353-47d6-b9eb-a07751d9740b"
-authors = ["Kei18 <keisuke.oku18@gmail.com>"]
 version = "0.1.0"
 
 [deps]
@@ -30,9 +29,3 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 julia = ">= 1.6"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
