@@ -1,3 +1,7 @@
+"""
+instance generation example, used in tests
+"""
+
 using MAPPFD
 
 function generate_sample_graph1()::Graph

@@ -1,3 +1,7 @@
+"""
+evaluation scripts
+"""
+
 import CSV
 import YAML
 import Random: seed!
