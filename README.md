@@ -3,16 +3,12 @@ mappcf
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
 [![CI](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/mappfd/actions/workflows/ci.yaml)
 
-The code repository of the paper "Fault-Tolerant Offline Multi-Agent Path Planning" (MAPPCF).
+The code repository of the paper ["Fault-Tolerant Offline Multi-Agent Path Planning"](https://kei18.github.io/mappcf/) (MAPPCF; AAAI-23).
 The entire code is written in Julia 1.7.
 
 ## Demo
 
-![](./assets/example.png)
-![](./assets/example.gif)
-
-- (first) Solution example. Each agent has a backup path as necessary.
-- (second) Execution demo. A red agent is crashed in the middle (turning to a diagonal shape, gray-filled). The left-blue agent changes its executing path.
+![](./assets/demo_reduced.gif)
 
 ## Setup
 
@@ -31,6 +27,13 @@ julia --project=. -e "using IJulia; jupyterlab()"
 ```
 
 See `notebooks/toy-example.ipynb`.
+You will eventually get the following:
+
+![](./assets/example.png)
+![](./assets/example.gif)
+
+- (first) Solution example. Each agent has a backup path as necessary.
+- (second) Execution demo. A red agent is crashed in the middle (turning to a diagonal shape, gray-filled). The left-blue agent changes its executing path.
 
 ## Reproduction
 
@@ -145,8 +148,7 @@ The experimental results were obtained in:
 - Auto formatting (juliaformatter.jl) when committing:
 
 ```sh
-git config core.hooksPath .githooks
-chmod a+x .githooks/pre-commit
+git config core.hooksPath .githooks && chmod a+x .githooks/pre-commit
 ```
 
 ## Licence
