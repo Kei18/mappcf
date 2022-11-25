@@ -150,6 +150,24 @@ const App: React.SFC<{}> = () => {
             ""
           )}
 
+      {data.demo ? (
+          <div className="mx-auto mt-5">
+              <p className="h5">Execution Demo</p>
+              <p className="text-secondary">{data.demoDescription}</p>
+              <div className="row">
+              {data.demo.map((item, i) => {
+                  return (
+                      <div key={i} className="col-md text-center">
+                          <img src={images_gif[item.image]} className="img-fluid" />
+                          </div>
+                  );
+              })}
+          </div>
+              </div>
+      ) : (
+          ""
+      )}
+
           {data.video ? (
             <div className="mx-auto mt-5">
               <p className="h5">Video</p>

@@ -34,6 +34,15 @@ news:
     url: https://aaai.org/Conferences/AAAI-23/
     date: Nov. 2022
 
+demo:
+  - image: anim3
+  - image: anim4
+  - image: anim5
+
+demoDescription: |
+  Despite the crash agent (red), the other agents are guaranteed to reach their goal.
+  This is the same for crashes of the other agents, provided that the maximum number of crashes is one.
+
 # video:
 
 # slides:
