@@ -11,8 +11,10 @@ twitter: _kei18
 authors:
   - name: Keisuke Okumura
     url: https://kei18.github.io/
+    affiliation: Tokyo Institute of Technology, Japan
   - name: Sébastien Tixeuil
     url: https://www-npa.lip6.fr/~tixeuil/wiki/pmwiki.php
+    affiliation: Sorbonne University, CNRS, LIP6, Institut Universitaire de France, France
 
 topLinks:
   - name: AAAI-23 (in press)
@@ -23,6 +25,10 @@ headerImage: demo
 subLinks:
   - name: code
     url: https://github.com/Kei18/mappcf
+
+otherLinks:
+  - name: Offline Time-Independent Multi-Agent Path Planning (OTIMAPP; IJCAI-22)
+    url: https://kei18.github.io/otimapp/
 
 abstract: |
   <p>We study a novel graph path planning problem for multiple agents that may crash at runtime, and block part of the workspace. In our setting, agents can detect neighboring crashed agents, and change followed paths at runtime.

@@ -57,7 +57,15 @@ const App: React.SFC<{}> = () => {
                 if (item.url) {
                   return (
                     <div key={i} className="col-sm">
-                      <a href={item.url}>{item.name}</a>
+                      <a href={item.url} className="h5">
+                        {item.name}
+                      </a>
+                      <br />
+                      <small>
+                        <span className="text-secondary">
+                          {item.affiliation}
+                        </span>
+                      </small>
                     </div>
                   );
                 } else {
@@ -150,23 +158,23 @@ const App: React.SFC<{}> = () => {
             ""
           )}
 
-      {data.demo ? (
-          <div className="mx-auto mt-5">
+          {data.demo ? (
+            <div className="mx-auto mt-5">
               <p className="h5">Execution Demo</p>
               <p className="text-secondary">{data.demoDescription}</p>
               <div className="row">
-              {data.demo.map((item, i) => {
+                {data.demo.map((item, i) => {
                   return (
-                      <div key={i} className="col-md text-center">
-                          <img src={images_gif[item.image]} className="img-fluid" />
-                          </div>
+                    <div key={i} className="col-md text-center">
+                      <img src={images_gif[item.image]} className="img-fluid" />
+                    </div>
                   );
-              })}
-          </div>
+                })}
               </div>
-      ) : (
-          ""
-      )}
+            </div>
+          ) : (
+            ""
+          )}
 
           {data.video ? (
             <div className="mx-auto mt-5">
@@ -210,6 +218,21 @@ const App: React.SFC<{}> = () => {
                   <code>{data.citation}</code>
                 </pre>
               </div>
+            </div>
+          ) : (
+            ""
+          )}
+
+          {data.otherLinks ? (
+            <div className="mx-auto mt-5">
+              <p className="h5">Other Links</p>
+              <ul>
+                {data.otherLinks.map((item, i) => (
+                  <li key={i}>
+                    <a href={item.url}>{item.name}</a>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : (
             ""
