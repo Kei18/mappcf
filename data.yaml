@@ -5,7 +5,7 @@ description: |-
   Fault-Tolerant Offline Multi-Agent Path Planning
 site_name: research projects | Keisuke Okumura
 site_url: https://kei18.github.io/mappcf/
-thumbnail: thumbnail.png
+thumbnail: thumbnail
 twitter: _kei18
 
 authors:
@@ -18,7 +18,7 @@ authors:
 
 topLinks:
   - name: AAAI-23 (in press)
-    # url:
+    url: https://arxiv.org/abs/2211.13908
 
 headerImage: demo
 
