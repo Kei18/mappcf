@@ -17,8 +17,10 @@ authors:
     affiliation: Sorbonne University, CNRS, LIP6, Institut Universitaire de France, France
 
 topLinks:
-  - name: AAAI-23 (in press)
-    url: https://arxiv.org/abs/2211.13908
+  - name: AAAI-23 paper
+    url: https://ojs.aaai.org/index.php/AAAI/article/view/26376
+  - name: preprint on arXiv
+    url: https://arxiv.org/abs/2211.13908   
 
 headerImage: demo
 
@@ -27,7 +29,7 @@ subLinks:
     url: https://github.com/Kei18/mappcf
 
 otherLinks:
-  - name: Offline Time-Independent Multi-Agent Path Planning (OTIMAPP; IJCAI-22)
+  - name: Offline Time-Independent Multi-Agent Path Planning (OTIMAPP; IJCAI-22, T-RO-23)
     url: https://kei18.github.io/otimapp/
 
 abstract: |
@@ -54,8 +56,6 @@ demoDescription: |
 slides: https://speakerdeck.com/player/8e206bd5eac843f6b30fcb9363bd628e
 
 citation: |-
-  (in press)
-
   @inproceedings{okumura2023fault,
     title={Fault-Tolerant Offline Multi-Agent Path Planning},
     booktitle={Proceedings of AAAI Conference on Artificial Intelligence (AAAI)},
